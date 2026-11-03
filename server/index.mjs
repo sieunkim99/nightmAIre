@@ -16,8 +16,19 @@ const MODEL = process.env.NIGHTMAIRE_MODEL || "claude-opus-5-5";
 const EFFORT = process.env.NIGHTMAIRE_EFFORT || "medium";
 const FORCE_DEMO = process.env.DEMO_MODE === "1";
 
+const PROD = process.env.NODE_ENV === "production";
+
 const app = express();
 app.use(express.json({ limit: "1mb" }));
+
+// 공개 배포 보호: ACCESS_CODE가 설정돼 있으면 생성/판정/로그 API에 접속 코드를 요구한다.
+// (공개 서버는 소유자의 API 키로 과금되므로, 코드 없이 열어두지 않는 것을 권장)
+const ACCESS_CODE = process.env.ACCESS_CODE || "";
+function requireCode(req, res, next) {
+  if (!ACCESS_CODE) return next();
+  if (req.get("x-access-code") === ACCESS_CODE) return next();
+  res.status(401).json({ error: "access code required" });
+}
 
 let client = null;
 function getClient() {
@@ -66,14 +77,19 @@ function logEvent(event) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true, mode: liveMode() ? "live" : "demo", model: MODEL });
+  res.json({
+    ok: true,
+    mode: liveMode() ? "live" : "demo",
+    model: MODEL,
+    accessRequired: Boolean(ACCESS_CODE),
+  });
 });
 
 app.get("/api/deck", (_req, res) => {
   res.json({ deck: RISK_DECK, dials: DIALS });
 });
 
-app.post("/api/dream", async (req, res) => {
+app.post("/api/dream", requireCode, async (req, res) => {
   const { material, dials, critiques = [], sessionId } = req.body || {};
   if (!material || !dials) return res.status(400).json({ error: "material and dials required" });
   logEvent({ type: "dream_request", sessionId, material, dials, critiques });
@@ -99,7 +115,7 @@ app.post("/api/dream", async (req, res) => {
   }
 });
 
-app.post("/api/judge", async (req, res) => {
+app.post("/api/judge", requireCode, async (req, res) => {
   const { dream, principles = [], sessionId } = req.body || {};
   if (!dream || !principles.length)
     return res.status(400).json({ error: "dream and principles required" });
@@ -127,7 +143,7 @@ app.post("/api/judge", async (req, res) => {
 });
 
 // 수집된 연구 데이터 내보내기 (교사/연구자 콘솔용)
-app.get("/api/events", (_req, res) => {
+app.get("/api/events", requireCode, (_req, res) => {
   const file = path.join(DATA_DIR, "events.jsonl");
   if (!fs.existsSync(file)) return res.json({ events: [] });
   const events = fs
@@ -145,9 +161,20 @@ app.get("/api/events", (_req, res) => {
   res.json({ events });
 });
 
-// 주의: 일반 PORT 변수는 쓰지 않는다 — 프리뷰 런처가 PORT=5173(프론트 포트)을 주입해
-// Vite와 충돌한 적이 있음. API 포트는 전용 변수로만 바꾼다.
-const PORT = process.env.NIGHTMAIRE_API_PORT || 5799;
+// 프로덕션(호스팅)에서는 빌드된 프론트도 이 서버가 함께 서빙한다 → 단일 서비스 배포
+if (PROD) {
+  const dist = path.join(here, "..", "dist");
+  app.use(express.static(dist));
+  app.get(/^\/(?!api\/).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
+}
+
+// 포트: 호스팅(프로덕션)에서는 플랫폼이 주는 PORT를 따른다.
+// 개발에서는 일반 PORT를 무시한다 — 프리뷰 런처가 PORT=5173(프론트 포트)을 주입해
+// Vite와 충돌한 적이 있음. 개발용 API 포트는 전용 변수(NIGHTMAIRE_API_PORT)로만 바꾼다.
+const PORT =
+  process.env.NIGHTMAIRE_API_PORT || (PROD && process.env.PORT) || 5799;
 app.listen(PORT, () => {
-  console.log(`[nightmAIre] server on http://localhost:${PORT} (${liveMode() ? "LIVE" : "DEMO"} mode, model: ${MODEL})`);
+  console.log(
+    `[nightmAIre] server on http://localhost:${PORT} (${liveMode() ? "LIVE" : "DEMO"} mode, model: ${MODEL}${ACCESS_CODE ? ", access code ON" : ""})`,
+  );
 });

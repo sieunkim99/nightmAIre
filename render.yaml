@@ -1,0 +1,19 @@
+# Render 배포 블루프린트 — https://render.com
+# Render 대시보드에서 New → Blueprint → 이 GitHub 리포 선택하면 자동 인식된다.
+# 배포 후 대시보드 Environment에서 ANTHROPIC_API_KEY와 ACCESS_CODE 값을 넣을 것 (리포에는 절대 넣지 않는다).
+services:
+  - type: web
+    name: nightmaire
+    runtime: node
+    plan: free
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false # 대시보드에서 직접 입력
+      - key: ACCESS_CODE
+        sync: false # 동료에게만 알려줄 접속 코드 (비우면 보호 없음 — 비추천)
+      - key: NIGHTMAIRE_MODEL
+        value: claude-opus-5-5
+      - key: NIGHTMAIRE_EFFORT
+        value: medium

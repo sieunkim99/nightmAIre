@@ -37,6 +37,18 @@ src/
   lib/           # API 클라이언트, localStorage 세션 저장
 ```
 
+## 공개 배포 (내 API 키로 돌아가는 라이브 서버)
+
+[Render](https://render.com) 무료 티어 기준 (리포에 `render.yaml` 블루프린트 포함):
+
+1. Render 가입 → **New → Blueprint** → 이 GitHub 리포 연결 → 자동 인식된 설정으로 생성
+2. 서비스의 **Environment** 탭에서 입력:
+   - `ANTHROPIC_API_KEY`: 내 Anthropic API 키 (리포에는 절대 커밋하지 않는다)
+   - `ACCESS_CODE`: 동료에게만 알려줄 접속 코드 — **공개 서버는 소유자 키로 과금되므로 꼭 설정 권장.** 설정하면 생성/판정 시 코드를 한 번 묻고 기기에 저장된다.
+3. 배포 완료 후 `https://<서비스명>.onrender.com` 링크를 접속 코드와 함께 공유
+
+주의: 무료 티어는 15분 유휴 시 잠들었다가 첫 접속에 ~1분 걸리고, 디스크가 임시라 서버 로그(`events.jsonl`)는 재배포 시 사라진다 — 워크숍 후 콘솔에서 "서버 로그 내보내기"로 즉시 백업할 것.
+
 ## 연구 데이터
 
 - 모든 입력·생성·비판·원칙·판정이 `server/data/events.jsonl`에 기록됨

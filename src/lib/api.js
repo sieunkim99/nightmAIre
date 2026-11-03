@@ -11,12 +11,41 @@ import {
   judgeUserPrompt,
 } from "../../server/prompts.mjs";
 
+// 공개 배포 서버의 접속 코드 (ACCESS_CODE가 설정된 서버에서만 사용됨)
+function getCode() {
+  try {
+    return localStorage.getItem("nightmaire_code") || "";
+  } catch {
+    return "";
+  }
+}
+function setCode(c) {
+  try {
+    localStorage.setItem("nightmaire_code", c);
+  } catch {
+    /* 저장 불가 환경 무시 */
+  }
+}
+function codeHeaders() {
+  const c = getCode();
+  return c ? { "x-access-code": c } : {};
+}
+
 async function post(url, body) {
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
+  const doFetch = () =>
+    fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", ...codeHeaders() },
+      body: JSON.stringify(body),
+    });
+  let res = await doFetch();
+  if (res.status === 401) {
+    const c = window.prompt("접속 코드를 입력해줘 (워크숍 진행자에게 받은 코드)");
+    if (c && c.trim()) {
+      setCode(c.trim());
+      res = await doFetch();
+    }
+  }
   if (!res.ok) throw new Error(`request failed: ${res.status}`);
   return res.json(); // 정적 호스트가 HTML을 돌려주면 여기서 throw → 다음 경로
 }
@@ -99,7 +128,14 @@ export const api = {
 
   events: async () => {
     try {
-      const res = await fetch("/api/events");
+      let res = await fetch("/api/events", { headers: codeHeaders() });
+      if (res.status === 401) {
+        const c = window.prompt("접속 코드를 입력해줘 (워크숍 진행자에게 받은 코드)");
+        if (c && c.trim()) {
+          setCode(c.trim());
+          res = await fetch("/api/events", { headers: codeHeaders() });
+        }
+      }
       if (!res.ok) throw new Error("no server");
       return await res.json();
     } catch {
