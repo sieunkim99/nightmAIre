@@ -36,7 +36,7 @@ export default function DreamPlayer({ dream, mode, onStory, onCritique }) {
     <div>
       <div className="dream-title">
         「{dream.title}」
-        <span className={"badge " + (mode === "live" ? "live" : "demo")}>{mode === "live" ? "AI 생성" : "데모"}</span>
+        <span className={"badge " + (mode === "demo" ? "demo" : "live")}>{mode === "demo" ? "데모" : "AI 생성"}</span>
       </div>
 
       <div className="dream-stage" style={phase === "review" ? { aspectRatio: "16/7" } : undefined}>

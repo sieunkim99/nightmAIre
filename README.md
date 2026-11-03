@@ -14,13 +14,14 @@ npm run dev
 - 웹: http://localhost:5173 (프론트, Vite)
 - API: http://localhost:5799 (Express)
 
-## 모드
+## 생성 경로 (3단계 자동 폴백)
 
-- **데모 모드** (기본): API 키 없이 동작. 사전 제작된 악몽 2종(공부/생활)을 입력에 맞춰 개인화. 판정은 키워드 휴리스틱.
-- **라이브 모드**: `.env`에 `ANTHROPIC_API_KEY`를 넣으면 Claude가 Futures Wheel 기반으로 악몽을 생성하고 원칙을 판정. 실패 시 자동으로 데모로 폴백.
+1. **로컬 서버 라이브**: `.env`에 `ANTHROPIC_API_KEY`가 있으면 Express 서버가 Claude API로 악몽 생성·판정 (워크숍 현장용, 연구 로그 수집 포함)
+2. **claude.ai 뷰어 라이브**: claude.ai 아티팩트로 열면 뷰어 본인의 Claude 계정으로 생성 (첫 생성 시 1회 허용 필요, 사용량은 뷰어 부담) — 서버·키 배포 없이 라이브 공유 가능
+3. **내장 데모**: 둘 다 없으면 사전 제작 악몽 2종을 입력에 맞춰 개인화, 판정은 키워드 휴리스틱
 
 ```bash
-cp .env.example .env   # 키 입력
+cp .env.example .env   # 로컬 라이브 모드: 키 입력
 ```
 
 ## 구조
