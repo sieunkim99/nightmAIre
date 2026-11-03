@@ -91,7 +91,9 @@ export default function ReversePanel({ dream, judge, judging, onJudge, onFinish 
             placeholder="예: AI 답을 쓰기 전에 내 답을 먼저 정한다"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && !judging && addPrinciple()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.nativeEvent.isComposing && !judging) addPrinciple();
+            }}
           />
           <button className="btn small" disabled={judging || !draft.trim()} onClick={addPrinciple}>
             {judging ? "판정 중…" : "원칙 추가"}

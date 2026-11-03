@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { api } from "./lib/api.js";
+import { accessCode, api } from "./lib/api.js";
 import { newSessionId, saveSession } from "./lib/store.js";
 import MaterialForm from "./components/MaterialForm.jsx";
 import Dials from "./components/Dials.jsx";
@@ -32,9 +32,37 @@ export default function App() {
     };
   }, [dream, story]);
 
+  const [needCode, setNeedCode] = useState(false);
+  const [codeDraft, setCodeDraft] = useState("");
+  const [codeBusy, setCodeBusy] = useState(false);
+
   useEffect(() => {
-    api.health().then((h) => setServerMode(h.mode)).catch(() => setServerMode("offline"));
+    api
+      .health()
+      .then(async (h) => {
+        setServerMode(h.mode);
+        if (h.accessRequired) {
+          // 저장된 코드가 있으면 그대로 통과, 없거나 틀리면 첫 화면에서 한 번 입력
+          setNeedCode(!(accessCode.get() && (await api.checkCode())));
+        }
+      })
+      .catch(() => setServerMode("offline"));
   }, []);
+
+  async function saveCode() {
+    const c = codeDraft.trim();
+    if (!c) return;
+    setCodeBusy(true);
+    accessCode.set(c);
+    const ok = await api.checkCode();
+    setCodeBusy(false);
+    if (ok) {
+      setNeedCode(false);
+      showToast("접속 코드 확인 완료! 이 기기에 저장됐어요.");
+    } else {
+      showToast("코드가 맞지 않아요. 다시 확인해줘!");
+    }
+  }
 
   function showToast(msg) {
     setToast(msg);
@@ -110,9 +138,31 @@ export default function App() {
             <br />
             그리고 — 악몽은 되돌릴 수 있어.
           </p>
-          <button className="btn" onClick={start}>
-            악몽 만들러 가기 🌙
-          </button>
+          {needCode ? (
+            <div className="card" style={{ width: "min(340px, 90%)", textAlign: "left" }}>
+              <label className="field-label" style={{ marginTop: 0 }}>
+                🔑 접속 코드 (한 번만 입력하면 이 기기에 저장돼요)
+              </label>
+              <div className="chat-input-row" style={{ marginTop: 0 }}>
+                <input
+                  type="text"
+                  placeholder="진행자에게 받은 코드"
+                  value={codeDraft}
+                  onChange={(e) => setCodeDraft(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) saveCode();
+                  }}
+                />
+                <button className="btn small" disabled={codeBusy || !codeDraft.trim()} onClick={saveCode}>
+                  {codeBusy ? "확인 중…" : "확인"}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="btn" onClick={start}>
+              악몽 만들러 가기 🌙
+            </button>
+          )}
         </div>
       )}
 

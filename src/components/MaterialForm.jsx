@@ -89,7 +89,11 @@ export default function MaterialForm({ onDone, onBack }) {
             placeholder={who === "me" ? "내가 한 말…" : "AI가 한 말…"}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && addBubble()}
+            onKeyDown={(e) => {
+              // 한글 IME 조합 중의 Enter는 무시 — 조합 확정 Enter가 중복 처리되어
+              // 마지막 글자만 담긴 말풍선이 하나 더 생기는 버그 방지
+              if (e.key === "Enter" && !e.nativeEvent.isComposing) addBubble();
+            }}
           />
           <button className="btn small ghost" onClick={addBubble}>
             추가

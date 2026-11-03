@@ -60,7 +60,23 @@ function claudeSample() {
   return samplePromise;
 }
 
+// 접속 코드 저장소 (첫 입력 후 이 기기에 저장)
+export const accessCode = {
+  get: getCode,
+  set: setCode,
+};
+
 export const api = {
+  // 저장된 코드가 서버에서 통하는지 확인 (코드가 필요 없는 서버면 항상 true)
+  checkCode: async () => {
+    try {
+      const res = await fetch("/api/events", { headers: codeHeaders() });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  },
+
   health: async () => {
     try {
       const res = await fetch("/api/health");
