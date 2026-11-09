@@ -31,6 +31,8 @@ server/
   riskDeck.mjs   # 악몽 카드 덱 — Related Works 문헌에 grounding된 위험 construct 6종
   storyPrompts.mjs # 악몽 이야기 엔진 (6장면 구조, eval/에서 선정)
   dreamShape.mjs # 이야기 → 앱 꿈 객체 변환 (장면 → 캔버스 쇼트)
+  images.mjs     # 장면 그림 생성 (gpt-image-2.6-flare, 1번 그림을 참고 이미지로 주인공 통일)
+  imagePrompts.mjs # 그림 화풍·주인공 고정 프롬프트
   prompts.mjs    # 되돌리기 판정 프롬프트 (+ 이전 Futures Wheel 생성 프롬프트, eval baseline용)
   demo.mjs       # 오프라인 데모 콘텐츠/판정기
   index.mjs      # API + 연구 데이터 로그 (server/data/events.jsonl, append-only)
@@ -79,6 +81,8 @@ nightmAIre는 "악몽"이라는 사변적 꿈을 PD stimuli로 쓰는 **RtD 프�
 5. **깬 뒤의 흔적** — 현실 물건 하나에 꿈이 남고, 무엇을 할지는 비워둔다.
 
 6장면(opening → rule → wish → cost → climax → wake). 쓰기 전에 위험 카드 하나와 근거를 고르게 하고, 원인(causes)마다 카드와 근거 논문이 태깅된다 (*terrifying but true*). 장면은 [server/dreamShape.mjs](server/dreamShape.mjs)가 beat·장소·문장에서 캔버스 쇼트(무대·인물 포즈·사건·카메라)로 옮긴다 — 모델에게 쇼트까지 쓰게 하면 평가한 프롬프트가 달라지기 때문.
+
+장면 그림은 [server/images.mjs](server/images.mjs)가 OpenAI 이미지 모델로 그린다 (eval/images.mjs로 3개 모델 비교 후 gpt-image-2.6-flare 채택: 장당 약 $0.036, 6장 약 20초). 1번 장면을 먼저 그리고 나머지 5장은 1번을 참고 이미지로 넘겨 주인공 모습과 화풍을 맞춘다. 그림이 다 나온 뒤 꿈을 보여주며, 실패한 장면이나 OPENAI_API_KEY가 없는 환경에서는 캔버스 쇼트로 대신한다. 되돌리기 화면에서는 같은 그림에 끊어낸 원인만큼 새벽빛이 번진다.
 
 ### 3. 문헌 Grounding — 악몽 카드 덱
 

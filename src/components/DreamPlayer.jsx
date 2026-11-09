@@ -39,9 +39,13 @@ export default function DreamPlayer({ dream, mode, nickname, onReaction, onCriti
       </div>
 
       <div className="dream-stage">
-        <DreamCanvas palette={c.palette} mood={c.mood} scene={c.scene || null} motifs={c.motifs || []} />
+        {c.img ? (
+          <img className="scene-img" src={c.img} alt={dream.scenes?.[phase === "wake" ? last : cut]?.image || ""} />
+        ) : (
+          <DreamCanvas palette={c.palette} mood={c.mood} scene={c.scene || null} motifs={c.motifs || []} />
+        )}
         <div className="grain" />
-        <div className="scanlines" />
+        {!c.img && <div className="scanlines" />}
         <div className="vignette" />
         <div className="scene-tag">{phase === "wake" ? "깨어남" : `장면 ${cut + 1} / ${cuts.length}`}</div>
       </div>

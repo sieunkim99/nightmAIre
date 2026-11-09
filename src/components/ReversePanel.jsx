@@ -12,6 +12,7 @@ export default function ReversePanel({ dream, judge, judging, onJudge, onFinish 
   const cuts = judge?.revisedCuts || dream.cuts;
   const c = cuts[Math.min(cut, cuts.length - 1)];
   const state = judge?.dreamState || "nightmare";
+  const img = dream.cuts[Math.min(cut, dream.cuts.length - 1)]?.img;
   const nodeState = Object.fromEntries((judge?.nodes || []).map((n) => [n.id, n]));
 
   function addPrinciple() {
@@ -32,9 +33,17 @@ export default function ReversePanel({ dream, judge, judging, onJudge, onFinish 
       </p>
 
       <div className="dream-stage" style={{ aspectRatio: "16/8" }}>
-        <DreamCanvas palette={c.palette} mood={c.mood} scene={c.scene || null} motifs={c.motifs || []} />
+        {img ? (
+          // 원래 꿈의 그림 위에, 끊어낸 원인만큼 새벽빛이 번진다
+          <>
+            <img className={"scene-img lit-" + state} src={img} alt="" />
+            <div className={"dawn lit-" + state} />
+          </>
+        ) : (
+          <DreamCanvas palette={c.palette} mood={c.mood} scene={c.scene || null} motifs={c.motifs || []} />
+        )}
         <div className="grain" />
-        <div className="scanlines" />
+        {!img && <div className="scanlines" />}
         <div className="vignette" />
         <div className="scene-tag">장면 {Math.min(cut, cuts.length - 1) + 1} / {cuts.length}</div>
       </div>

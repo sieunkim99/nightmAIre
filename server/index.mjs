@@ -8,11 +8,13 @@ import { RISK_DECK, DIALS } from "./riskDeck.mjs";
 import { judgeSystemPrompt, judgeUserPrompt } from "./prompts.mjs";
 import { writeSystemPrompt, writeUserPrompt } from "./storyPrompts.mjs";
 import { storyToDream } from "./dreamShape.mjs";
+import { drawScenes, imagesEnabled, IMAGE_MODEL } from "./images.mjs";
 import { demoDream, demoJudge } from "./demo.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(here, "data");
 fs.mkdirSync(DATA_DIR, { recursive: true });
+const IMG_DIR = path.join(DATA_DIR, "images");
 
 const MODEL = process.env.NIGHTMAIRE_MODEL || "claude-opus-5-5";
 const EFFORT = process.env.NIGHTMAIRE_EFFORT || "medium";
@@ -83,9 +85,13 @@ app.get("/api/health", (_req, res) => {
     ok: true,
     mode: liveMode() ? "live" : "demo",
     model: MODEL,
+    imageModel: imagesEnabled() ? IMAGE_MODEL : null,
     accessRequired: Boolean(ACCESS_CODE),
   });
 });
+
+// 장면 그림: 파일 이름이 추측 불가능한 무작위 id라 <img>로 바로 불러온다 (헤더를 붙일 수 없음)
+app.use("/api/img", express.static(IMG_DIR, { maxAge: "7d", fallthrough: false }));
 
 app.get("/api/deck", (_req, res) => {
   res.json({ deck: RISK_DECK, dials: DIALS });
@@ -104,6 +110,17 @@ app.post("/api/dream", requireCode, async (req, res) => {
         const story = await callModel(writeSystemPrompt({ withPlan: false }), writeUserPrompt({ material, dials, critiques }));
         dream = storyToDream(story, material);
         mode = "live";
+        if (imagesEnabled()) {
+          // 그림이 다 나온 뒤에 꿈을 보여준다. 실패한 장면은 캔버스로 남는다.
+          const t0 = Date.now();
+          try {
+            const files = await drawScenes({ story, material, dir: IMG_DIR });
+            files.forEach((f, i) => f && dream.cuts[i] && (dream.cuts[i].img = `/api/img/${f}`));
+            logEvent({ type: "images", sessionId, model: IMAGE_MODEL, files, ms: Date.now() - t0 });
+          } catch (err) {
+            console.error("[dream] scene images failed:", err.message);
+          }
+        }
       } catch (err) {
         console.error("[dream] live generation failed, falling back to demo:", err.message);
         dream = demoDream({ material, dials });
@@ -179,6 +196,6 @@ const PORT =
   process.env.NIGHTMAIRE_API_PORT || (PROD && process.env.PORT) || 5799;
 app.listen(PORT, () => {
   console.log(
-    `[nightmAIre] server on http://localhost:${PORT} (${liveMode() ? "LIVE" : "DEMO"} mode, model: ${MODEL}${ACCESS_CODE ? ", access code ON" : ""})`,
+    `[nightmAIre] server on http://localhost:${PORT} (${liveMode() ? "LIVE" : "DEMO"} mode, model: ${MODEL}${imagesEnabled() ? `, images: ${IMAGE_MODEL}` : ""}${ACCESS_CODE ? ", access code ON" : ""})`,
   );
 });
