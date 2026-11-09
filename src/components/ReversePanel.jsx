@@ -36,13 +36,14 @@ export default function ReversePanel({ dream, judge, judging, onJudge, onFinish 
         <div className="grain" />
         <div className="scanlines" />
         <div className="vignette" />
-        <div className="narration">{c.narration}</div>
+        <div className="scene-tag">장면 {Math.min(cut, cuts.length - 1) + 1} / {cuts.length}</div>
       </div>
       <div className="cut-dots">
         {cuts.map((_, i) => (
           <span key={i} className={i === cut ? "on" : ""} onClick={() => setCut(i)} style={{ cursor: "pointer" }} />
         ))}
       </div>
+      <p className="scene-text" style={{ fontSize: 16, minHeight: "3.6em" }}>{c.narration}</p>
 
       <div className="state-meter">
         <span>악몽</span>

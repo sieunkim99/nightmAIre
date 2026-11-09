@@ -4,12 +4,9 @@
 // 3) 내장 데모 엔진 (서버도 Claude도 없는 정적 호스팅/오프라인)
 // prompts.mjs와 demo.mjs는 순수 JS라 브라우저에서 그대로 동작한다.
 import { demoDream, demoJudge } from "../../server/demo.mjs";
-import {
-  dreamSystemPrompt,
-  dreamUserPrompt,
-  judgeSystemPrompt,
-  judgeUserPrompt,
-} from "../../server/prompts.mjs";
+import { judgeSystemPrompt, judgeUserPrompt } from "../../server/prompts.mjs";
+import { writeSystemPrompt, writeUserPrompt } from "../../server/storyPrompts.mjs";
+import { isStory, storyToDream } from "../../server/dreamShape.mjs";
 
 // 공개 배포 서버의 접속 코드 (ACCESS_CODE가 설정된 서버에서만 사용됨)
 function getCode() {
@@ -97,18 +94,18 @@ export const api = {
     const sample = await claudeSample();
     if (sample) {
       try {
-        const dream = await sample.json(
-          dreamSystemPrompt() +
+        const story = await sample.json(
+          writeSystemPrompt({ withPlan: false }) +
             "\n\n" +
-            dreamUserPrompt({
+            writeUserPrompt({
               material: payload.material,
               dials: payload.dials,
               critiques: payload.critiques || [],
             }),
           { modelTier: "default" },
         );
-        if (dream && Array.isArray(dream.cuts) && dream.cuts.length && Array.isArray(dream.causeNodes)) {
-          return { dream, mode: "claude" };
+        if (isStory(story)) {
+          return { dream: storyToDream(story, payload.material), mode: "claude" };
         }
       } catch (e) {
         console.warn("[nightmAIre] viewer-Claude dream failed, falling back to demo:", e?.code || e);

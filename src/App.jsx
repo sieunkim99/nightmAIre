@@ -16,21 +16,14 @@ export default function App() {
   const [dream, setDream] = useState(null);
   const [dreamMode, setDreamMode] = useState("demo");
   const [critiques, setCritiques] = useState([]);
-  const [story, setStory] = useState(null); // 아이가 쓴 장면별 이야기
+  const [reaction, setReaction] = useState(""); // 꿈에서 깬 뒤 아이가 쓴 한 줄
   const [judge, setJudge] = useState(null);
   const [judging, setJudging] = useState(false);
   const [toast, setToast] = useState("");
   const session = useRef(null);
 
-  // 되돌리기 단계에서는 아이가 쓴 이야기가 꿈의 내레이션이 된다
-  const reverseDream = useMemo(() => {
-    if (!dream) return null;
-    if (!story) return dream;
-    return {
-      ...dream,
-      cuts: dream.cuts.map((c, i) => ({ ...c, narration: story[i]?.trim() || c.narration })),
-    };
-  }, [dream, story]);
+  // 판정기에 아이의 한 줄도 함께 넘긴다
+  const reverseDream = useMemo(() => (dream ? { ...dream, reaction } : null), [dream, reaction]);
 
   const [needCode, setNeedCode] = useState(false);
   const [codeDraft, setCodeDraft] = useState("");
@@ -110,7 +103,7 @@ export default function App() {
     setDream(null);
     setJudge(null);
     setCritiques([]);
-    setStory(null);
+    setReaction("");
     setPhase("material");
   }
 
@@ -193,9 +186,10 @@ export default function App() {
             saveSession(session.current);
             generate(material, dials, next);
           }}
-          onStory={(arr) => {
-            setStory(arr);
-            session.current = { ...session.current, story: arr };
+          nickname={material?.nickname}
+          onReaction={(text) => {
+            setReaction(text);
+            session.current = { ...session.current, reaction: text };
             saveSession(session.current);
             setPhase("reverse");
           }}
@@ -219,9 +213,9 @@ export default function App() {
             {judge?.dreamState === "good" ? "네가 꿈을 되돌렸어 ✨" : "오늘의 꿈 기록 완료"}
           </h1>
           <p>
-            「{dream?.title}」{story?.[story.length - 1] && <><br />네 이야기의 마지막 장면: “{story[story.length - 1]}”</>}
+            「{dream?.title}」{reaction && <><br />꿈에서 깨어난 뒤: “{reaction}”</>}
             <br />
-            네가 쓴 이야기 {story?.length || 0}장면과 원칙 {session.current?.principles?.length || 0}개가 기록됐어.
+            원칙 {session.current?.principles?.length || 0}개가 기록됐어.
           </p>
           <div style={{ display: "flex", gap: 10 }}>
             <button className="btn ghost" onClick={() => setPhase("console")}>

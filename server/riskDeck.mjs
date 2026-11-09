@@ -189,17 +189,19 @@ export const DIALS = {
       { id: "grown", label: "어른이 됐을 때", wheelDepth: 3 },
     ],
   },
-  scope: {
-    label: "누구에게?",
+  genre: {
+    label: "어떤 꿈?",
     options: [
-      { id: "me", label: "나" },
-      { id: "friends", label: "나와 친구들" },
-      { id: "all", label: "모두" },
+      { id: "school", label: "학교 괴담" },
+      { id: "loop", label: "반복되는 하루" },
+      { id: "wonderland", label: "이상한 나라" },
+      { id: "future", label: "미래의 하루" },
     ],
   },
   loss: {
     label: "무엇을 잃어?",
     options: [
+      { id: "auto", label: "알아서" },
       { id: "thinking", label: "내 생각", hint: "스스로 생각하는 힘" },
       { id: "heart", label: "내 마음", hint: "감정과 마음의 힘" },
       { id: "friendship", label: "친구 사이", hint: "사람들과의 관계" },

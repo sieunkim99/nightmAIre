@@ -13,18 +13,20 @@ const DIALS = [
     ],
   },
   {
-    key: "scope",
-    label: "누구에게 일어나는 악몽일까?",
+    key: "genre",
+    label: "어떤 꿈으로 꿀까?",
     options: [
-      { id: "me", label: "나" },
-      { id: "friends", label: "나와 친구들" },
-      { id: "all", label: "모두" },
+      { id: "school", label: "학교 괴담", hint: "밤이 되면 규칙이 바뀌는 학교" },
+      { id: "loop", label: "반복되는 하루", hint: "같은 날이 계속 다시 시작돼" },
+      { id: "wonderland", label: "이상한 나라", hint: "물건이 말을 하는 세계" },
+      { id: "future", label: "미래의 하루", hint: "그때의 평범한 하루" },
     ],
   },
   {
     key: "loss",
     label: "무엇을 잃어버리는 악몽일까?",
     options: [
+      { id: "auto", label: "알아서 골라줘", hint: "내 재료에 맞게" },
       { id: "thinking", label: "내 생각", hint: "스스로 생각하는 힘" },
       { id: "heart", label: "내 마음", hint: "감정과 마음의 힘" },
       { id: "friendship", label: "친구 사이", hint: "사람들과의 관계" },

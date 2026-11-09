@@ -5,7 +5,9 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { RISK_DECK, DIALS } from "./riskDeck.mjs";
-import { dreamSystemPrompt, dreamUserPrompt, judgeSystemPrompt, judgeUserPrompt } from "./prompts.mjs";
+import { judgeSystemPrompt, judgeUserPrompt } from "./prompts.mjs";
+import { writeSystemPrompt, writeUserPrompt } from "./storyPrompts.mjs";
+import { storyToDream } from "./dreamShape.mjs";
 import { demoDream, demoJudge } from "./demo.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -98,7 +100,9 @@ app.post("/api/dream", requireCode, async (req, res) => {
     let mode = "demo";
     if (liveMode()) {
       try {
-        dream = await callModel(dreamSystemPrompt(), dreamUserPrompt({ material, dials, critiques }));
+        // v2 이야기 엔진 (eval/에서 고른 single 파이프라인: 기획까지 한 번의 호출로)
+        const story = await callModel(writeSystemPrompt({ withPlan: false }), writeUserPrompt({ material, dials, critiques }));
+        dream = storyToDream(story, material);
         mode = "live";
       } catch (err) {
         console.error("[dream] live generation failed, falling back to demo:", err.message);

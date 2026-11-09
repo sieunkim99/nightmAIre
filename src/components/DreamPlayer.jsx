@@ -1,36 +1,35 @@
-import { useEffect, useState } from "react";
+import { Fragment, useState } from "react";
 import DreamCanvas from "./DreamCanvas.jsx";
 
-// 꿈은 자막 없이 재생되고, 이야기는 아이가 쓴다.
-// watch(감상) → write(장면마다 이야기 쓰기) → review(내 이야기 완성 + 꿈 기록원의 해몽과 비교)
-// 시스템이 만든 내레이션은 숨겨진 '해몽'으로만 존재한다 — 아이의 해석이 먼저다.
+// 꿈 읽기 → 깨어나기.
+// read: 장면마다 그림 아래에 이야기를 읽는다 (아이가 넘긴다 — 읽는 속도는 아이마다 다르다)
+// wake: 꿈에서 깬 뒤 남은 흔적을 보고, "깨어난 나는…" 한 줄을 쓴다.
+//       이야기의 마지막 장면은 주인공이 무엇을 할지 비워두므로, 그 빈칸을 아이가 채운다.
+// 데모 꿈(v1, scenes 없음)은 cuts의 narration을 이야기로 읽는다.
 
-const CUT_MS = 7000;
+function SceneText({ text, refrain }) {
+  // 되풀이되는 AI의 말을 표시해서, 세 번 나올 때마다 뜻이 바뀌는 걸 알아보게 한다
+  if (!refrain || !text.includes(refrain)) return text;
+  const parts = text.split(refrain);
+  return parts.map((p, i) => (
+    <Fragment key={i}>
+      {p}
+      {i < parts.length - 1 && <span className="refrain">{refrain}</span>}
+    </Fragment>
+  ));
+}
 
-export default function DreamPlayer({ dream, mode, onStory, onCritique }) {
-  const [phase, setPhase] = useState("watch"); // watch | write | review
+export default function DreamPlayer({ dream, mode, nickname, onReaction, onCritique }) {
+  const [phase, setPhase] = useState("read"); // read | wake
   const [cut, setCut] = useState(0);
-  const [playing, setPlaying] = useState(true);
-  const [story, setStory] = useState(() => dream.cuts.map(() => ""));
-  const [reveal, setReveal] = useState(false);
+  const [reaction, setReaction] = useState("");
   const [critique, setCritique] = useState("");
   const [showCritique, setShowCritique] = useState(false);
 
-  useEffect(() => {
-    if (phase !== "watch" || !playing) return;
-    const t = setTimeout(() => {
-      if (cut < dream.cuts.length - 1) setCut(cut + 1);
-      else {
-        setPlaying(false);
-        setPhase("write");
-        setCut(0);
-      }
-    }, CUT_MS);
-    return () => clearTimeout(t);
-  }, [cut, playing, phase, dream]);
-
-  const c = dream.cuts[cut];
-  const storyDone = story.every((s) => s.trim());
+  const cuts = dream.cuts;
+  const last = cuts.length - 1;
+  const c = cuts[phase === "wake" ? last : cut];
+  const who = nickname || "나";
 
   return (
     <div>
@@ -39,111 +38,75 @@ export default function DreamPlayer({ dream, mode, onStory, onCritique }) {
         <span className={"badge " + (mode === "demo" ? "demo" : "live")}>{mode === "demo" ? "데모" : "AI 생성"}</span>
       </div>
 
-      <div className="dream-stage" style={phase === "review" ? { aspectRatio: "16/7" } : undefined}>
+      <div className="dream-stage">
         <DreamCanvas palette={c.palette} mood={c.mood} scene={c.scene || null} motifs={c.motifs || []} />
         <div className="grain" />
         <div className="scanlines" />
         <div className="vignette" />
-        <div className="scene-tag">장면 {cut + 1} / {dream.cuts.length}</div>
-        {phase === "write" && story[cut].trim() && (
-          <div className="narration" style={{ fontSize: 16 }}>{story[cut]}</div>
-        )}
-        {phase === "review" && (
-          <div className="narration" style={{ fontSize: 16 }}>{story[cut]}</div>
-        )}
+        <div className="scene-tag">{phase === "wake" ? "깨어남" : `장면 ${cut + 1} / ${cuts.length}`}</div>
       </div>
 
-      <div className="cut-dots">
-        {dream.cuts.map((_, i) => (
-          <span
-            key={i}
-            className={i === cut ? "on" : ""}
-            onClick={() => {
-              setCut(i);
-              if (phase === "watch") setPlaying(false);
-            }}
-            style={{ cursor: "pointer" }}
-          />
-        ))}
-      </div>
-
-      {phase === "watch" && (
-        <div style={{ textAlign: "center", marginTop: 8 }}>
-          <p className="step-sub" style={{ marginBottom: 12 }}>
-            네 재료로 지어진 악몽이야. 소리 없는 꿈처럼, 일단 끝까지 봐봐.
-          </p>
-          <button
-            className="btn small ghost"
-            onClick={() => {
-              setPlaying(false);
-              setPhase("write");
-              setCut(0);
-            }}
-          >
-            다 봤어, 이야기 쓰러 가기 ✍️
-          </button>
-        </div>
-      )}
-
-      {phase === "write" && (
-        <div className="card" style={{ marginTop: 14 }}>
-          <label className="field-label" style={{ marginTop: 0 }}>
-            이 꿈의 이야기는 네가 쓰는 거야. <b>장면 {cut + 1}</b>에선 무슨 일이 일어나고 있을까?
-          </label>
-          <textarea
-            value={story[cut]}
-            onChange={(e) => setStory(story.map((s, i) => (i === cut ? e.target.value : s)))}
-            placeholder={cut === 0 ? "예: 밤마다 나는 화면 앞에 앉아서…" : "이 장면에서는…"}
-          />
-          <div className="nav-row">
-            <button className="btn ghost small" disabled={cut === 0} onClick={() => setCut(cut - 1)}>
-              ← 앞 장면
-            </button>
-            {cut < dream.cuts.length - 1 ? (
-              <button className="btn small" disabled={!story[cut].trim()} onClick={() => setCut(cut + 1)}>
-                다음 장면 →
-              </button>
-            ) : (
-              <button className="btn small" disabled={!storyDone} onClick={() => { setPhase("review"); setCut(0); }}>
-                이야기 완성 →
-              </button>
-            )}
+      {phase === "read" && (
+        <>
+          <div className="cut-dots">
+            {cuts.map((_, i) => (
+              <span key={i} className={i === cut ? "on" : ""} onClick={() => setCut(i)} style={{ cursor: "pointer" }} />
+            ))}
           </div>
-        </div>
+          <div className="card scene-card">
+            {dream.scenes?.[cut]?.place && <div className="scene-place">{dream.scenes[cut].place}</div>}
+            <p className="scene-text">
+              <SceneText text={c.narration} refrain={dream.refrain} />
+            </p>
+            <div className="nav-row">
+              <button className="btn ghost small" disabled={cut === 0} onClick={() => setCut(cut - 1)}>
+                ← 앞 장면
+              </button>
+              {cut < last ? (
+                <button className="btn small" onClick={() => setCut(cut + 1)}>
+                  다음 장면 →
+                </button>
+              ) : (
+                <button className="btn small" onClick={() => setPhase("wake")}>
+                  꿈에서 깨기 →
+                </button>
+              )}
+            </div>
+          </div>
+        </>
       )}
 
-      {phase === "review" && (
+      {phase === "wake" && (
         <div style={{ marginTop: 14 }}>
+          {dream.trace && (
+            <div className="card">
+              <label className="field-label" style={{ marginTop: 0 }}>
+                꿈이 남긴 흔적
+              </label>
+              <p className="scene-text" style={{ margin: 0 }}>{dream.trace}</p>
+            </div>
+          )}
+
           <div className="card">
             <label className="field-label" style={{ marginTop: 0 }}>
-              네가 쓴 악몽 이야기
+              꿈에서 깨어난 {who}는 어떻게 할까? 이어서 한 줄 써봐.
             </label>
-            <ol className="principles">
-              {story.map((s, i) => (
-                <li key={i} onClick={() => setCut(i)} style={{ cursor: "pointer" }}>
-                  {s}
-                  {reveal && (
-                    <span style={{ display: "block", color: "var(--ink-dim)", fontSize: 13, marginTop: 2 }}>
-                      🌙 꿈 기록원의 해몽: {dream.cuts[i].narration}
-                    </span>
-                  )}
-                </li>
-              ))}
-            </ol>
-            <button className="btn small ghost" onClick={() => setReveal(!reveal)}>
-              {reveal ? "해몽 접기" : "🌙 꿈 기록원의 해몽과 비교해보기"}
-            </button>
+            <textarea
+              value={reaction}
+              onChange={(e) => setReaction(e.target.value)}
+              placeholder="예: 일어나자마자 제일 먼저 …했다"
+            />
           </div>
 
           {!showCritique ? (
             <div className="nav-row" style={{ justifyContent: "center", flexWrap: "wrap" }}>
-              <button className="btn small ghost" onClick={() => { setPhase("watch"); setPlaying(true); setCut(0); }}>
-                🔁 꿈 다시 보기
+              <button className="btn small ghost" onClick={() => { setPhase("read"); setCut(0); }}>
+                🔁 처음부터 다시 읽기
               </button>
               <button className="btn small danger" onClick={() => setShowCritique(true)}>
                 이 꿈은 말도 안 돼! 😤
               </button>
-              <button className="btn small" onClick={() => onStory(story)}>
+              <button className="btn small" disabled={!reaction.trim()} onClick={() => onReaction(reaction.trim())}>
                 악몽 되돌리러 가기 →
               </button>
             </div>

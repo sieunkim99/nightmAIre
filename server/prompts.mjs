@@ -117,7 +117,7 @@ export function judgeSystemPrompt() {
 - dreamState: 끊긴 노드 0개="nightmare", 일부="half", 전부="good".
 
 [꿈 다시 쓰기]
-- revisedCuts는 4컷. 끊긴 원인에 해당하는 장면은 밝아지고, 안 끊긴 원인의 장면은 여전히 악몽으로 남는다.
+- revisedCuts는 원래 꿈의 장면 수와 같은 개수. 각 narration은 1~3문장. 끊긴 원인에 해당하는 장면은 밝아지고, 안 끊긴 원인의 장면은 여전히 악몽으로 남는다.
 - dreamState가 "good"이면 같은 장소·같은 사물이 등장하는 예쁜 꿈으로 완전히 바뀐다 (palette는 새벽빛·연한 하늘색·따뜻한 노랑).
 - "half"면 어둠과 빛이 섞인다. "nightmare"면 거의 그대로이되 아주 희미한 빛이 한 뼘 는다.
 ${SAFETY}
@@ -135,8 +135,9 @@ JSON 외의 텍스트는 출력하지 않는다.`;
 export function judgeUserPrompt({ dream, principles }) {
   return `[악몽]
 제목: ${dream.title}
-아이가 직접 쓴 꿈 이야기 (장면별): ${dream.cuts.map((c, i) => `${i + 1}. ${c.narration}`).join(" / ")}
-※ 이 이야기는 아이의 해석이다. revisedCuts를 다시 쓸 때 아이가 만든 장소·사물·표현을 최대한 이어받아라.
+꿈 이야기 (장면 ${dream.cuts.length}개): ${dream.cuts.map((c, i) => `${i + 1}. ${c.narration}`).join(" / ")}
+${dream.reaction ? `깨어난 뒤 아이가 쓴 한 줄: ${dream.reaction}
+` : ""}※ revisedCuts를 다시 쓸 때 이 꿈의 장소·사물·사람·표현을 최대한 이어받아라. 장면 수(${dream.cuts.length}개)를 그대로 지켜라.
 
 [악몽의 원인들]
 ${dream.causeNodes.map((n) => `- ${n.id}: ${n.label} (예방 예시: ${n.prevention})`).join("\n")}
