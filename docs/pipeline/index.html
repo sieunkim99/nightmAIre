@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>nightmAIre · 악몽 생성 파이프라인 설계</title>
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#f7f7f3,#151719);--paper:light-dark(#fff,#202327);--ink:light-dark(#222d35,#ecf0f2);--muted:light-dark(#53616b,#b5c0c9);--line:light-dark(#ccd4da,#444e57);--blue:light-dark(#1e5e8e,#8cc9f5);--soft:light-dark(#e8f2fa,#243b4c);--green:light-dark(#2d684f,#93d9b7);--violet:light-dark(#75478b,#d9b0ed);--amber:light-dark(#79591d,#edd08f)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.7 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;word-break:keep-all}main{max-width:1120px;margin:auto;padding:48px 28px 80px}h1,h2,h3,p{margin:0}h1{font-size:clamp(30px,4vw,48px);line-height:1.25;max-width:760px;margin:18px 0}h2{font-size:26px;line-height:1.4;margin-bottom:18px}h3{font-size:18px;margin-bottom:10px}p+p{margin-top:12px}a{color:var(--blue);text-underline-offset:4px}code{font-size:.86em;overflow-wrap:anywhere}section{margin-top:56px;scroll-margin-top:20px}header .lead{max-width:860px;font-size:19px}.eyebrow{color:var(--blue);font-size:13px;letter-spacing:.1em}.meta,.muted,small{color:var(--muted)}.meta{font-size:14px}.badges,.controls,.links{display:flex;gap:8px;flex-wrap:wrap}.badge{border:1px solid var(--line);border-radius:30px;padding:4px 12px;font-size:13px}.links{gap:18px;margin-top:24px}.callout{margin-top:24px;padding:18px 22px;border-left:4px solid var(--blue);background:var(--soft)}.card{border:1px solid var(--line);background:var(--paper);border-radius:12px;padding:22px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:18px}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}.stack{display:grid;gap:16px}.label{color:var(--muted);font-size:13px;display:block;margin-bottom:4px}.tablewrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{border-bottom:1px solid var(--line);padding:14px 12px;text-align:left;vertical-align:top}th{font-weight:600;background:var(--soft)}td:first-child{font-weight:600;min-width:110px}td{min-width:180px}ul,ol{padding-left:24px;margin:10px 0}li+li{margin-top:8px}button,select,input,textarea{font:inherit;color:inherit}button{padding:10px 15px;background:var(--paper);border:1px solid var(--line);border-radius:8px;cursor:pointer}button:hover{background:var(--soft)}button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,a:focus-visible{outline:3px solid var(--blue);outline-offset:3px}select,textarea{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:10px;width:100%}textarea{resize:vertical;min-height:70px}fieldset{border:0;padding:0;margin:0}legend{font-weight:600;margin-bottom:12px}.pipeline{list-style:none;padding:0;margin:22px 0;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.pipeline li{margin:0}.pipeline button{width:100%;height:100%;text-align:left;padding:16px}.pipeline strong{display:block;font-size:17px}.pipeline small{color:inherit;opacity:.8;display:block}.stage-detail{border-top:3px solid var(--blue)}.stage-detail .grid3{margin-top:14px}.return{color:var(--muted);font-size:14px;margin-top:12px}.trace{display:grid;grid-template-columns:repeat(5,1fr);gap:22px;margin:22px 0}.trace>div{position:relative;border-top:3px solid var(--line);padding-top:12px}.trace>div:not(:last-child):after{content:'→';position:absolute;right:-18px;top:14px;color:var(--muted)}.trace strong{display:block}.trace small{display:block}.edge{display:inline-block;padding:3px 8px;border:1px dashed var(--line);font-size:13px;margin:3px 5px 3px 0}.worlds{margin-top:20px}.world{border-top:4px solid var(--green)}.world h3{color:var(--green)}.dream{border-top:4px solid var(--violet);margin-top:18px}.dream h3{color:var(--violet)}.example-input{margin:20px 0}.caption{font-size:14px;color:var(--muted);margin-top:12px}.rationale{border-left:3px solid var(--amber);padding-left:18px}.choices{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:22px}.decision{border-bottom:1px solid var(--line);padding-bottom:18px}.decision label{display:block;margin-bottom:8px;font-weight:600}.decision p{font-size:14px;color:var(--muted);margin:8px 0}.decision .reviewed{display:flex;gap:9px;font-weight:400;font-size:14px;align-items:center;margin-top:10px}.decision input{width:18px;height:18px}.status{font-size:14px;margin-top:14px}details{border-top:1px solid var(--line);padding:16px 0}summary{cursor:pointer;font-weight:600}footer{margin-top:50px;padding-top:20px;border-top:1px solid var(--line);font-size:14px;color:var(--muted)}.format-route{padding:26px 0;display:flex;flex-wrap:wrap;gap:12px;align-items:center}.route-node{padding:10px 16px;border-bottom:2px solid var(--violet);background:var(--paper)}.decision-tools{margin:22px 0}.no-print{display:block}@media(max-width:760px){main{padding:28px 18px 60px}.grid2,.grid3,.choices{grid-template-columns:1fr}.pipeline{grid-template-columns:1fr 1fr}.trace{grid-template-columns:1fr}.trace>div{padding-left:20px;border-top:0;border-left:3px solid var(--line)}.trace>div:not(:last-child):after{content:'↓';left:5px;right:auto;top:auto;bottom:-24px}.tablewrap{margin-right:-6px}h2{font-size:23px}.stage-detail .grid3{gap:18px}}@media print{body{background:#fff;color:#111}main{max-width:none;padding:0}section{break-inside:avoid;margin-top:30px}.no-print,button{display:none}.pipeline{display:none}a{color:inherit}.card{background:transparent}details>*{display:block}.choices{grid-template-columns:1fr 1fr}}
+</style>
+</head>
+<body><main>
+<header>
+ <div class="eyebrow">NIGHTMAIRE / GENERATOR DESIGN</div>
+ <h1>근거에서 여러 미래로,<br>여러 미래에서 나의 꿈으로.</h1>
+ <p class="lead">아이의 경험을 위험 하나로 단정하지 않고, 조건이 다른 미래를 탐색한 뒤 아이가 고른 재료로 꿈의 세계들을 엮는다.</p>
+ <p class="meta">2026.11.17 · 기준 구현 5a03113 · sieun 브랜치 설계 문서 · 아래 예시는 설명용이며 실제 AI 생성 결과가 아님</p>
+ <div class="badges" style="margin-top:20px"><span class="badge">초등 5–6학년 · 혼자 사용</span><span class="badge">이번 범위: 악몽 생성</span><span class="badge">장면 수 가변</span><span class="badge">결과 형식 미정</span></div>
+ <nav class="links" aria-label="문서 목차"><a href="#changes">변경 전후</a><a href="#pipeline">전체 파이프라인</a><a href="#library">위험 라이브러리</a><a href="#example">생성 예시</a><a href="#concept">꿈 컨셉</a><a href="#evidence">근거</a><a href="#decisions">마지막 결정 목록</a></nav>
+ <div class="callout"><strong>지금은 Supabase 이전보다 생성 구조를 먼저 바꾼다.</strong><br>무엇을 생성하고 무엇을 보존할지 정한 다음 저장소와 배포를 선택한다. 호스팅 이전·실서비스 배포는 이번 변경에 포함하지 않는다.</div>
+</header>
+
+<section id="changes"><h2>01. 무엇이 실제로 달라지는가</h2>
+<p>기존 <code>main 5a03113</code>의 실행 경로와 저장된 <code>test.html</code>의 설계 데모를 구분했다. HTML의 풍부한 카드 구조가 현재 writer에 모두 전달되는 것은 아니다.</p>
+<div class="tablewrap"><table><thead><tr><th>변경 지점</th><th>기존 실행 / HTML의 한계</th><th>새 생성 계약</th></tr></thead><tbody>
+<tr><td>재료 받기</td><td>폼, 정해진 대화와 추정된 감정·행동</td><td>경험·상상·예시를 구분하고 짧게 질문. 원문과 해석 분리, 아이가 요약 수정</td></tr>
+<tr><td>위험 연결</td><td>writer가 덱에서 위험 하나를 선택</td><td>후보 메커니즘의 조건을 확인. 복수·해당 없음·보류를 허용</td></tr>
+<tr><td>라이브러리</td><td>위험, 시스템 행동, 결과가 카드 16장에 혼재</td><td>출처 → 개별 주장 → 조건부 메커니즘. 위험 분류는 검색 태그</td></tr>
+<tr><td>미래 확장</td><td>내일=1차, 1년=2차, 성인=3차 / 한 경로</td><td>파급 차수·시간·발달 맥락을 별도로 기록. 여러 가정의 분기</td></tr>
+<tr><td>아이 참여</td><td>방향 다이얼·소품 선택. 범주 밖 발화는 가까운 칸으로 이동</td><td>세계 선택·혼합·거부·새 가정. 아이의 제안을 원래 의미로 보존</td></tr>
+<tr><td>꿈의 규칙</td><td>전역 규칙 하나, 리프레인 정확히 3회</td><td>세계마다 규칙. 반복 사물·바람이 세계를 연결. 반복 횟수는 필요에 따라</td></tr>
+<tr><td>장면</td><td>opening → rule → wish → cost → climax → wake의 6장면</td><td>내용과 전환에 따라 나누고 합침. 읽기 길이와 이미지 수는 별도 예산</td></tr>
+<tr><td>원인 설명</td><td>주로 ‘아이의 행동’과 예방 행동</td><td>AI 설계·학교·다른 사람·아이의 행동을 함께 기록. 꿈의 은유와 인과 구분</td></tr>
+<tr><td>실패·이미지</td><td>실패하면 다른 데모 꿈으로 대체 / 전체 이미지 대기</td><td>실패를 표시하고 재시도. 텍스트 결과와 이미지 준비 상태 구분</td></tr>
+<tr><td>종료</td><td>한 줄 성찰 → 되돌리기 판정</td><td>생성한 꿈을 보고 종료. 되돌리기·행동 약속·성찰 과제는 후속 범위</td></tr>
+</tbody></table></div>
+<p class="caption">유지: 구체적인 말·바람·사물, 감각적 연출, 출처 추적, 제외 요청, 시나리오와 그림의 분리. 자세한 계약은 <a href="design.md">설계 전문</a> 참고.</p>
+</section>
+
+<section id="pipeline"><h2>02. 생성은 일곱 단계, 아이의 경험은 세 덩어리</h2>
+<div class="grid3"><div><span class="label">아이에게 보이는 앞부분</span><h3>재료 이야기하기</h3><p>내 경험 또는 상상 → 필요한 질문 → 내 말 확인</p></div><div><span class="label">아이의 창작 참여</span><h3>꿈에 데려갈 것 고르기</h3><p>세계 씨앗 → 섞거나 바꾸기 → 베개 밑 쪽지</p></div><div><span class="label">완성 경험</span><h3>꿈 읽기·나오기</h3><p>내용에 맞는 장면 → 덜 무섭게 보기 → 명확한 종료</p></div></div>
+<ol class="pipeline" aria-label="단계별 입력과 산출물 살펴보기">
+<li><button type="button" data-stage="0" aria-pressed="true"><small>1 →</small><strong>재료 모으기</strong><small>경험·바람·상상</small></button></li>
+<li><button type="button" data-stage="1" aria-pressed="false"><small>2 →</small><strong>기제 연결</strong><small>적용 조건·반대 조건</small></button></li>
+<li><button type="button" data-stage="2" aria-pressed="false"><small>3 →</small><strong>미래 씨앗</strong><small>서로 다른 가정</small></button></li>
+<li><button type="button" data-stage="3" aria-pressed="false"><small>4 →</small><strong>아이와 섞기</strong><small>선택·변경·거부</small></button></li>
+<li><button type="button" data-stage="4" aria-pressed="false"><small>5 →</small><strong>꿈의 세계</strong><small>세계 규칙·전환</small></button></li>
+<li><button type="button" data-stage="5" aria-pressed="false"><small>6 →</small><strong>집필·검토</strong><small>연결감·연령·추적</small></button></li>
+<li><button type="button" data-stage="6" aria-pressed="false"><small>7</small><strong>그림·전달</strong><small>일관된 표현·종료</small></button></li>
+</ol>
+<div id="stage-panel" class="card stage-detail" aria-live="polite"></div>
+<p class="return">되돌아가는 경로: ②에서 중요한 조건이 비면 ①로 확인 질문 · ④에서 새 가정을 넣으면 ③을 수정 · ⑥에서 근거·연결 오류가 발견되면 ⑤ 또는 ③으로 · 그림 실패는 해당 그림만 재시도</p>
+<details><summary>계산 단계를 나누는 이유와 완료 조건</summary><p>한 번의 writer 호출에 위험 검색·미래 확장·꿈 연출을 모두 맡기면 단계별 오류를 찾기 어렵다. 각 단계는 고유 ID가 있는 결과를 남기고 다음 단계는 그 결과를 입력으로 받는다. 위험 후보가 없으면 새 근거를 만들어내지 않으며, 검토에서 실패한 결과는 아이에게 정상 결과처럼 전달하지 않는다. 모델 검토는 연구자의 문헌 검토를 대신하지 않는다.</p></details>
+</section>
+
+<section id="library"><h2>03. 카드는 ‘논문에서 나온 악몽 줄거리’가 아니다</h2>
+<p>분류는 무엇을 찾아볼지 알려준다. 메커니즘은 <strong>어떤 조건에서, 무엇을 거쳐, 어떤 결과가 가능해지는지</strong>를 설명한다. 카드 화면은 이 둘을 모아 읽는 창이다.</p>
+<div class="trace" role="img" aria-label="출처에서 주장, 메커니즘, 미래 사건, 꿈 장면으로 이어지는 추적 구조">
+ <div><strong>출처 R</strong><small>논문·버전·원문 위치</small></div><div><strong>주장 C</strong><small>대상·과제·결과·한계</small></div><div><strong>기제 M</strong><small>조건·과정·대안</small></div><div><strong>미래 F</strong><small>가정·사건·행위자</small></div><div><strong>꿈 D</strong><small>세계·장면·은유</small></div>
+</div>
+<div class="grid2"><div class="card"><h3>연결에도 종류가 있다</h3><p><span class="edge">연구가 지지함</span><span class="edge">관찰된 연관</span><span class="edge">적용상의 추론</span><span class="edge">새 가정</span><span class="edge">꿈속 전환</span></p><p>같은 연구를 인용한 두 노드라도 그 사이의 인과관계가 입증된 것은 아니다. 시간 점프와 파급의 차수도 별개다.</p></div><div class="card"><h3>반대 조건도 생성에 쓰인다</h3><p>정답을 그대로 받기와 먼저 풀고 힌트를 받기는 다른 경로로 가야 한다. 반대 증거를 각주에만 두고 항상 같은 파국을 생성하면 기제 연결이 실패한 것이다.</p></div></div>
+<div class="tablewrap" style="margin-top:20px"><table><thead><tr><th>문헌의 역할</th><th>채택</th><th>경계</th></tr></thead><tbody>
+<tr><td>YAIR</td><td>청소년 위험 영역·상호작용 경로를 검색하고 누락 점검</td><td>분류 자체로 아이의 미래를 예측하지 않음</td></tr>
+<tr><td>MIT AI Risk Repository</td><td>위험 영역과 발생 주체·의도·시점을 구분하는 보조 축</td><td>원인 분류표가 검증된 개별 인과모형은 아님</td></tr>
+<tr><td>개별 실증 연구</td><td>특정 주장과 적용 조건·반대 조건을 채움</td><td>성인·고등학생·단기 결과를 초등 장기 효과로 일반화하지 않음</td></tr>
+<tr><td>TSJ/CDM</td><td>발달 맥락을 생각하는 참고 렌즈</td><td>시뮬레이션 자료를 실제 아동 장기 추적처럼 사용하지 않음</td></tr>
+</tbody></table></div>
+<div class="callout"><strong>‘YAIR 13개 전부’는 수정해야 한다.</strong><br>정식 SOUPS 2025 PDF의 Table 3은 중간 항목 14개를 열거하고 Figure 1 설명은 15개라고 표기한다. 이전 arXiv/HTML 설계의 13개와 구분해 <a href="taxonomy.md">버전·대응표</a>로 관리한다. 84개 세부 위험을 전부 검증·구현했다는 의미가 아니다.</div>
+<details><summary>기존 16장을 어디로 옮기는가</summary><p><strong>시스템 특성·사건:</strong> sycophancy, hallucination, holdme, changed.<br><strong>상호작용·판단:</strong> outsourcing, overreliance, informant, personhood, nudge, nextvideo, easier.<br><strong>결과·패턴:</strong> memorygap, dependence, sameness.<br><strong>복수 경로로 분해:</strong> fakes, secrets.</p><p>이 분류는 프로젝트의 데이터 구조를 위한 재배치다. 각 개념은 하나 이상의 메커니즘과 연결될 수 있다. 기존 카드와 출처는 보존하되 미검토 내용을 검증 완료로 승격하지 않는다.</p></details>
+</section>
+
+<section id="example"><h2>04. 조건을 바꾸면 미래도 바뀐다</h2>
+<p>설명용 사례: “수학 숙제를 빨리 끝내고 게임하고 싶었어.” 아래에서 <strong>AI 도움을 사용한 방식</strong>을 바꿔 보면, 같은 바람이 다른 미래 조건으로 이어지는 것을 볼 수 있다.</p>
+<div class="controls example-input" role="group" aria-label="경험 조건 비교"><button type="button" data-use="copy" aria-pressed="true">완성 답을 그대로 이용</button><button type="button" data-use="hint" aria-pressed="false">먼저 풀고 힌트 이용</button><button type="button" data-use="unknown" aria-pressed="false">아직 어떻게 썼는지 모름</button></div>
+<div id="example-ground" class="card" aria-live="polite"></div>
+<div id="worlds" class="grid3 worlds"></div>
+<div class="card dream"><h3>꿈으로 바꾸는 순간: 아이의 지우개가 경계를 지운다</h3><p>아이가 A와 B를 섞으면, 자동으로 완성되는 답안이 도장 계단을 끝없이 만든다. 위층으로 올라간 주인공이 아래 친구에게 풀이를 설명하려 하자, 글자가 입가에서 종이 조각으로 흩어진다.</p><p>“지우개로 학교 두 개를 합칠래”라는 아이의 재료는 <strong>세계의 연결을 실제로 바꾼다.</strong> 지우개·목소리·계단의 규칙은 창작 은유이며 연구가 입증한 사건이 아니다. 비교 세계 C를 최종 꿈에 넣을지는 선택에 달려 있다.</p></div>
+<p class="caption">근거 R1: <a href="https://www.pnas.org/doi/10.1073/pnas.2422633122">Bastani et al., 2025</a>. 특정 고등학교 수학 실험에서 도구의 지원 방식에 따라 결과가 달랐다. 이 사례의 초등학생·학교 제도·미래 세계는 연구를 넘어선 설계 가정이다.</p>
+</section>
+
+<section id="concept"><h2>05. 꿈 제작소와 베개 밑 쪽지</h2>
+<div class="grid2"><div class="card"><h3>아이에게 하는 설명</h3><p>“네가 이야기해 준 조각과 ‘만약’을 섞어서 꿈을 만드는 곳이야. 꿈에 꼭 데려가고 싶은 것도 넣을 수 있어. 이건 앞으로 꼭 생길 일이 아니라, 우리가 함께 만드는 상상이야.”</p><p>안내자는 짧고 호기심 있게 묻는 제작 도우미다. 속마음을 알아맞히는 전문가나 아이에게 의존을 요구하는 친구 역할을 맡지 않는다.</p></div><div class="card"><h3>세 가지 재료의 역할</h3><ol><li><strong>기억 쪽지:</strong> 아이가 말하고 확인한 경험·바람</li><li><strong>만약 쪽지:</strong> 학교·AI·관계에서 바꿔 보고 싶은 조건</li><li><strong>꿈에 데려갈 것:</strong> 물건·말·상상 조각, 꿈의 전환을 만드는 재료</li></ol><p>베개 아래에 넣기는 클릭·선택으로도 가능하다. 물건 3개나 드래그 동작을 필수로 만들지 않는다.</p></div></div>
+<p class="caption">두 Notion 페이지의 재료 수집·꿈 제작소·베개 밑 쪽지를 연결한 제안이다. 다른 아이의 실제 재료 공유는 단독 사용 기본 흐름에 넣지 않는다. 필요하면 검토된 가상 조각을 제공한다.</p>
+<div class="rationale" style="margin-top:24px"><p><strong>연구에서 차용하는 범위:</strong> Dormio는 실제 수면 시작 단계에서 자극이 꿈 내용에 들어가도록 하는 연구다. 이 서비스는 깨어서 쓰는 창작 도구이므로 실제 꿈 배양 장치도, 무의식 분석도 아니다. 위협 시뮬레이션은 꿈의 기능에 대한 가설이다. 인공 악몽을 보여주면 아동의 성찰·정서 조절이 향상된다고 주장하지 않는다.</p></div>
+</section>
+
+<section id="formats"><h2>06. 여러 세계를 꼭 ‘갈림길 게임’으로 보여줄 필요는 없다</h2>
+<div class="controls" role="group" aria-label="산출물 표현 비교"><button type="button" data-format="story" aria-pressed="true">한 편으로 읽기</button><button type="button" data-format="choice" aria-pressed="false">갈림길 선택</button><button type="button" data-format="map" aria-pressed="false">꿈 지도</button></div>
+<div id="format-view" aria-live="polite"></div>
+<p>첫 코드 시안에는 <strong>생성 전에 함께 고르고, 완성 후 한 편으로 읽기</strong>를 임시 기본값으로 둔다. 혼자 쓰는 아이가 이야기의 연결을 이해하는지 먼저 확인하려는 개발 판단이다. 최종 형식은 아래 결정 목록에서 정하며, 세계·장면·전환을 담는 공통 결과 구조는 유지한다.</p>
+</section>
+
+<section id="evidence"><h2>07. 제안의 근거와 검증되지 않은 부분</h2>
+<div class="tablewrap"><table><thead><tr><th>출처</th><th>이 설계에 쓰는 원리</th><th>주장하지 않는 것</th></tr></thead><tbody>
+<tr><td><a href="https://www.usenix.org/system/files/soups2025-yu.pdf">YAIR · SOUPS 2025</a></td><td>청소년 위험 분류와 네 가지 상호작용 경로</td><td>초등 5–6학년의 개인별 장기 결과·확률</td></tr>
+<tr><td><a href="https://airisk.mit.edu/risks">MIT AI Risk Repository</a></td><td>영역 분류와 원인 관련 축을 분리. 출처 위치 추적</td><td>분류만으로 인과가 검증됨</td></tr>
+<tr><td><a href="https://arxiv.org/html/2602.08565v1">Agent-Supported Foresight</a></td><td>다양한 관점·다차수 결과·중복 제거·사람의 판단</td><td>1차=내일, 2차=1년 같은 시간 규칙</td></tr>
+<tr><td><a href="https://www.pnas.org/doi/10.1073/pnas.2422633122">Bastani et al. · PNAS 2025</a></td><td>지원 방식과 사용 조건에 민감한 경로</td><td>모든 AI 사용이 사고력 상실로 이어짐</td></tr>
+<tr><td><a href="https://arxiv.org/html/2503.17473v2">Fang et al. · 2025</a></td><td>사용량·상호작용·개인차를 구분, 반대 결과 보존</td><td>성인 연구의 사용량 연관성을 아동 인과 효과로 사용</td></tr>
+<tr><td><a href="https://mitpress.mit.edu/9780262019842/speculative-everything/">Speculative Everything</a></td><td>가능한 미래를 통해 질문을 여는 설계</td><td>생성된 세계가 실제 미래의 예측</td></tr>
+<tr><td><a href="https://doi.org/10.1145/302979.303166">Cooperative Inquiry</a></td><td>아이의 목소리와 기여가 결과를 바꾸게 하기</td><td>이 공동창작 UI의 효과가 이미 검증됨</td></tr>
+<tr><td><a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7590944/">Dormio · 2020</a></td><td>재료가 꿈에 스며든다는 인터랙션의 창작적 출발점</td><td>베개 쪽지 화면이 실제 수면 연구와 같은 효과</td></tr>
+<tr><td><a href="https://www.cambridge.org/core/journals/behavioral-and-brain-sciences/article/abs/reinterpretation-of-dreams-an-evolutionary-hypothesis-of-the-function-of-dreaming/EE0E7DB39E361540D2DDA79C262EDA7E">Revonsuo · 2000</a></td><td>위협을 시뮬레이션한다는 이론적 관점</td><td>악몽 노출의 교육적·치료적 효능 보장</td></tr>
+</tbody></table></div>
+<p class="caption">설계 출발점: <a href="https://app.notion.com/p/41698dfd38d580199d4ff603473034ab">악몽 generator Pipeline</a> · <a href="https://app.notion.com/p/41698dfd38d580959ce2c6b3da9564ff">Design Concept: nightmare</a>. EEAAO와 Dream Productions는 창작 레퍼런스다.</p>
+</section>
+
+<section id="delivery"><h2>08. 구현 순서와 확인할 동작</h2>
+<ol><li><strong>문서 먼저:</strong> 변경 전후, 단계별 입력·출력, 분류 대응, 결정 목록을 sieun에 기록한다.</li><li><strong>생성 코드:</strong> 경험 → 근거 연결 → 여러 미래 → 공동 선택 → 세계·장면 → 집필을 실제 요청으로 연결한다. writer가 전체 덱에서 새 위험을 임의로 다시 고르지 않는다.</li><li><strong>단독 사용:</strong> 요약 수정·건너뛰기·나오기, 선택 위임, 명확한 끝을 제공한다. 되돌리기 단계로 강제 이동시키지 않는다.</li><li><strong>검사:</strong> 출처·사건 참조가 유효한지, 선택이 반영되는지, 장면 수가 달라져도 읽히는지, 실패가 데모로 숨겨지지 않는지 확인한다.</li><li><strong>그다음:</strong> 실제 생성 품질·아동 사용성을 검토하고 자료 보존·운영 방식과 배포를 정한다.</li></ol>
+<p>구현 확인과 연구적 검증은 다르다. 구조 검사를 통과해도 문헌 해석과 아동 적합성이 검증된 것은 아니다. 유해 현실 경험의 처리와 검토되지 않은 위험 경로는 운영 전에 별도로 확인한다.</p>
+</section>
+
+<section id="decisions"><h2>09. 마지막으로, 직접 체크할 결정 목록</h2>
+<p><strong>다시 정할 필요 없는 조건:</strong> 5–6학년 · 혼자 사용 · 이번에는 악몽 생성만 · 6장면 고정 해제. 아래 항목은 선택과 검토 표시를 따로 기록한다. 선택은 제안 확인용이며 코드나 GitHub에 자동 반영되지 않는다.</p>
+<div class="choices" id="decision-list"></div>
+<label for="decision-notes" style="display:block;margin-top:22px;font-weight:600">추가 메모</label><textarea id="decision-notes" placeholder="특히 마음에 들거나 바꾸고 싶은 부분"></textarea>
+<div class="controls decision-tools no-print"><button type="button" id="save-decisions">이 브라우저에 저장</button><button type="button" id="export-decisions">결정 목록 내려받기</button><button type="button" id="print-doc">문서 인쇄 / PDF</button></div>
+<p class="status" id="decision-status" role="status">아직 제출된 결정이 없습니다. 저장은 이 브라우저에서만 이루어집니다.</p>
+</section>
+<footer>nightmAIre pipeline redesign · 원본 test.html과 Notion을 수정하지 않고 만든 별도 설계 문서. <a href="design.md">설계 전문</a> · <a href="taxonomy.md">분류·출처 대응</a> · <a href="decisions.md">체크리스트 원문</a></footer>
+</main>
+<script>
+(() => {
+const stages=[
+{name:'1. 재료 모으기',input:'실제 경험 / 미래 상상 / 검토된 가상 예시',work:'상황·바람·AI의 행동·그다음 내가 한 일을 짧게 묻는다. 필요한 조건만 확인하고, 아이가 요약을 고친다.',output:'ExperienceSeed: 원문, 출처 유형, 확인된 재료, unknown',check:'말하지 않은 감정·행동을 사실로 넣지 않는다. 걱정이나 손실을 필수 답으로 요구하지 않는다.'},
+{name:'2. 조건부 메커니즘 연결',input:'ExperienceSeed + 출처·주장·메커니즘 라이브러리',work:'관련 후보를 찾고 실제 사용 조건과 비교한다. 근거가 약하거나 조건이 다르면 차이를 남긴다.',output:'GroundingBundle: 후보 기제, 주장 ID, 적용 차이, 반대 조건',check:'단어·서비스명만으로 위험 확정 금지. 중요한 정보가 비면 확인 질문. 해당 없음도 허용.'},
+{name:'3. 서로 다른 미래 씨앗 만들기',input:'GroundingBundle + 아이의 바람',work:'반복, 학교 전체 확산, 평가 방식, AI 설계 등 서로 다른 가정으로 파급을 확장한다. 유사 후보는 합친다.',output:'FutureCandidates: 가정, 사건, 연결, 행위자, 차수, 시간',check:'장소만 바꾼 후보 금지. 이득·불확실성·다른 지원 조건도 남긴다. 모든 경로가 같은 불행으로 수렴하지 않는다.'},
+{name:'4. 아이와 선택·수정·섞기',input:'짧은 세계 씨앗 + 만약 쪽지 + 꿈에 데려갈 것',work:'하나 또는 여럿 선택, 빼기, 새 가정 쓰기, 선택 맡기기를 제공한다. 아이의 쪽지를 확인한다.',output:'CoauthoredFutureGraph: 선택·제외·추가와 사건 변경 기록',check:'선택이 사건을 바꾸어야 한다. 새 발화를 기존 분류에 억지로 옮기지 않는다.'},
+{name:'5. 꿈의 세계와 이동 구성',input:'선택한 미래 그래프 + 아이의 꿈 재료',work:'세계별 규칙을 만들고 사물·바람을 공유시켜 시간 접기, 겹침, 역할 뒤집기 등으로 엮는다.',output:'DreamBlueprint: worlds, scenes, transitions, defaultPath, sourceRefs',check:'미래의 조건부 인과와 꿈의 상징적 이동은 별도 연결. 세계가 무작위로 등장하지 않는다.'},
+{name:'6. 집필·검토',input:'DreamBlueprint + 길이·강도·제외 요청',work:'의미 있는 사건 단위로 장면을 나눈다. 입력 충실성, 근거 범위, 선택 반영, 연결감, 연령 적합성을 검토한다.',output:'DreamPackage: 이야기, 장면 ID, 이미지 브리프, 추적 기록',check:'6장면·위험 하나·규칙 하나를 강제하지 않는다. 실패하면 수정 단계로 되돌린다.'},
+{name:'7. 이미지 생성·전달',input:'검토된 장면 + 공통 인물·소품 + 세계별 시각 규칙',work:'그림을 만들고 일관성을 확인한다. 실패한 그림만 다시 시도할 수 있고 텍스트를 먼저 전달할 수 있다.',output:'텍스트와 그림, 준비 상태, 읽기 경로, 종료 동작',check:'그림이 텍스트에 없는 위험을 새로 만들지 않는다. 나가기와 강도 낮추기를 제공한다.'}
+];
+const stageButtons=[...document.querySelectorAll('[data-stage]')];
+function setStage(i){const s=stages[i],panel=document.getElementById('stage-panel');panel.replaceChildren();const h=document.createElement('h3');h.textContent=s.name;panel.append(h);const p=document.createElement('p');p.textContent=s.work;panel.append(p);const row=document.createElement('div');row.className='grid3';[['입력',s.input],['산출물',s.output],['통과 조건',s.check]].forEach(([k,v])=>{const d=document.createElement('div'),l=document.createElement('span'),t=document.createElement('p');l.className='label';l.textContent=k;t.textContent=v;d.append(l,t);row.append(d)});panel.append(row);stageButtons.forEach((b,j)=>b.setAttribute('aria-pressed',j===i));}
+stageButtons.forEach(b=>b.addEventListener('click',()=>setStage(Number(b.dataset.stage))));setStage(0);
+const examples={copy:['현재 재료 → 조건부 기제','독립적 시도를 대신했을 가능성을 검토한다. 장기 능력 상실을 확정하지 않는다.','연습 기회가 더 줄어든다면?'],hint:['현재 재료 → 다른 적용 조건','먼저 시도한 경험을 보존한다. 정답 대행 경로를 현재 아이에게 적용하지 않는다. A는 사용 방식이 바뀌었다는 새 가정이 필요하다.','앞으로 도움 방식이 바뀐다면?'],unknown:['현재 재료 → 확인이 먼저','“답을 받기 전에 직접 해본 부분도 있어?”를 확인한다. 건너뛰면 불확실성을 남기고 아래는 가상 조건으로만 다룬다.','만약 완성 답만 받는다면?']};
+function setUse(key){const x=examples[key],ground=document.getElementById('example-ground');ground.replaceChildren();const h=document.createElement('h3'),p=document.createElement('p');h.textContent=x[0];p.textContent=x[1];ground.append(h,p);const worlds=document.getElementById('worlds');worlds.replaceChildren();[['A · 자동 완성',x[2],'가정: 모든 숙제를 AI가 대신함','직접 변화: 시간을 얻음 → 독립적 시도의 기회가 달라짐'],['B · 속도만 평가','학교의 규칙이 바뀐다면?','가정: 이해보다 제출 속도만 보상','다음 변화: 평가·경쟁·질문의 가치가 달라질 수 있음'],['C · 힌트와 시도','도움 방식을 바꾼다면?','가정: 먼저 시도한 뒤 힌트를 줌','비교 경로: 지원을 받으면서 자기 풀이를 이어갈 수 있음']].forEach(lines=>{const c=document.createElement('div');c.className='card world';lines.forEach((t,i)=>{const e=document.createElement(i===0?'h3':'p');e.textContent=t;c.append(e)});worlds.append(c)});document.querySelectorAll('[data-use]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.use===key));}document.querySelectorAll('[data-use]').forEach(b=>b.addEventListener('click',()=>setUse(b.dataset.use)));setUse('copy');
+const formats={story:[['내 바람','→','자동 답안 교실','→','도장 계단 학교','→','두 세계의 겹침'],'여러 세계를 하나의 읽기 순서로 편집한다. 장면 수는 내용에 따라 달라진다.'],choice:[['내 바람','→','교실 또는 계단 선택','→','선택에 따른 겹침'],'읽는 도중 경로를 고른다. 선택의 부담과 끝까지 읽을 수 있는지를 확인해야 한다.'],map:[['교실 ↔ 지우개 ↔ 계단','↕','세계의 겹침'],'공간적 관계를 탐색한다. 기본 읽기 경로와 현재 위치·끝점이 필요하다.']};
+function setFormat(k){const v=document.getElementById('format-view');v.replaceChildren();const d=document.createElement('div');d.className='format-route';formats[k][0].forEach(t=>{const s=document.createElement('span');s.textContent=t;s.className=t.length>1?'route-node':'';d.append(s)});const p=document.createElement('p');p.className='caption';p.textContent=formats[k][1];v.append(d,p);document.querySelectorAll('[data-format]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.format===k));}document.querySelectorAll('[data-format]').forEach(b=>b.addEventListener('click',()=>setFormat(b.dataset.format)));setFormat('story');
+const decisions=[
+['format','완성된 꿈을 어떻게 경험할까?',['생성 전 공동 선택 + 한 편 읽기','읽는 중 갈림길 선택','꿈 지도 탐색'],'첫 구현 권장: 한 편 읽기. 내부 미래 분기 수와 화면 형식은 별개다.'],
+['persona','안내자는 어떤 존재일까?',['꿈 제작소의 안내자','베개 옆 꿈 수집가','별도 캐릭터 없이 중립 안내'],'권장: 짧고 호기심 있는 제작 도우미. 무의식 진단·감정 의존 역할은 피한다.'],
+['ritual','아이의 창작 참여를 어떻게 보여줄까?',['베개 밑 쪽지','제작소 재료 보드','단순 선택과 자유 입력'],'권장: 쪽지. 클릭·선택으로도 가능하게 하고 물건 개수를 강제하지 않는다.'],
+['length','첫 파일럿의 체험 길이는?',['짧은 읽기 중심','대화와 공동 선택을 충분히','두 길이를 비교'],'분 단위 최적값은 아직 없다. 입력 시간과 생성 대기, 읽기 시간을 따로 측정한다.'],
+['complexity','여러 세계를 얼마나 복잡하게 엮을까?',['두 세계의 연결부터','세 세계까지 비교','아이 선택에 따라 가변'],'권장: 두 세계의 연결을 먼저 확인. 3개 후보는 고정 규칙이 아닌 실험 기본값.'],
+['intensity','기본 악몽 표현은 어느 정도일까?',['낯설고 기묘한 정도','조금 으스스한 정도','두 표현을 별도 비교'],'권장: 낯섦부터. 낮추기·나오기 제공, 용기·위험도 점수와 연결하지 않는다.'],
+['library','첫 메커니즘을 어디까지 검토할까?',['학습·정보 수용·관계 3종','학습 1종을 깊게','16개 카드 전체를 단계별 검토'],'권장: 작은 경로를 끝까지 검증. 카드 수가 문헌 검증의 완성도를 뜻하지 않는다.'],
+['safety','민감한 위험 항목의 생성 범위는?',['검토된 비노골적 예시만','해당 입력은 다른 재료로 전환','항목별 운영 검토 후 결정'],'분류에서 삭제하는 것과 아이에게 생성하는 범위는 다르다. 현실 위기 경험을 악몽으로 확대하지 않는다.'],
+['grounding','아이에게 근거를 얼마나 보여줄까?',['짧은 상상 안내 + 선택적 설명','마지막에 연구와 가정 구분','별도 연구자 화면만 상세'],'권장: 시작·끝에는 함께 만든 상상임을 알리고 상세 추적은 연구자 화면.'],
+['storage','무엇을 기록할까?',['원문 없이 구조·선택 중심','동의한 세션만 원문 포함','파일럿 중 서버 영구 저장 안 함'],'보존 기간·삭제 방식·연구 동의는 운영 전에 정한다. 코드 임시 기본값은 최소 기록.'],
+['images','그림은 언제 보여줄까?',['텍스트 먼저, 그림 준비 순서대로','모든 그림 완성 뒤','핵심 장면만 그림'],'장면 수와 이미지 수를 분리. 세계별 시각 일관성 확인이 필요하다.'],
+['evaluation','첫 평가에서 무엇을 비교할까?',['단일 경로와 다중 미래','아이 개입과 자동 선택','먼저 이해도·사용성만'],'효과를 분리해 비교한다. 성찰 향상은 이번 생성 기능의 완료 기준이 아니다.'],
+['hosting','언제 배포·저장소를 정할까?',['텍스트 생성 검증 뒤','이미지 흐름 검증 뒤','운영 요구를 먼저 정리'],'Supabase 이전은 별도 작업. Render/Vercel의 현재 조건과 이용 목적을 그때 확인한다.']
+];
+const list=document.getElementById('decision-list');decisions.forEach(([id,q,opts,hint],i)=>{const d=document.createElement('div');d.className='decision';const l=document.createElement('label');l.htmlFor='d-'+id;l.textContent=String(i+1).padStart(2,'0')+' · '+q;const s=document.createElement('select');s.id='d-'+id;['미정',...opts].forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.append(o)});const p=document.createElement('p');p.textContent=hint;const c=document.createElement('label');c.className='reviewed';const input=document.createElement('input');input.type='checkbox';input.id='c-'+id;c.append(input,document.createTextNode('이 항목을 검토했음'));d.append(l,s,p,c);list.append(d)});
+const key='nightmaire-pipeline-decisions-v1';const status=document.getElementById('decision-status');
+function snapshot(){return {version:1,decisions:decisions.map(([id,question])=>({id,question,choice:document.getElementById('d-'+id).value,reviewed:document.getElementById('c-'+id).checked})),notes:document.getElementById('decision-notes').value};}
+try{const s=JSON.parse(localStorage.getItem(key)||'null');if(s?.version===1){s.decisions?.forEach(x=>{const select=document.getElementById('d-'+x.id),c=document.getElementById('c-'+x.id);if(select&&[...select.options].some(o=>o.value===x.choice)){select.value=x.choice;c.checked=Boolean(x.reviewed)}});document.getElementById('decision-notes').value=typeof s.notes==='string'?s.notes:'';status.textContent='이 브라우저에 저장했던 선택을 불러왔습니다. 코드에는 반영되지 않습니다.'}}catch{}
+document.getElementById('save-decisions').addEventListener('click',()=>{try{localStorage.setItem(key,JSON.stringify(snapshot()));status.textContent='이 브라우저에 저장했습니다. 다른 곳으로 전송하지 않았습니다.'}catch{status.textContent='이 브라우저에서는 저장할 수 없습니다. 결정 목록 내려받기를 사용해 주세요.'}});
+document.getElementById('export-decisions').addEventListener('click',()=>{const s=snapshot();const text='# nightmAIre 설계 결정\n\n'+s.decisions.map(x=>'- ['+(x.reviewed?'x':' ')+'] '+x.question+'\n  선택: '+x.choice).join('\n\n')+'\n\n## 메모\n'+s.notes;const u=URL.createObjectURL(new Blob([text],{type:'text/markdown;charset=utf-8'}));const a=document.createElement('a');a.href=u;a.download='nightmaire-decisions.md';a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);status.textContent='선택 내용을 파일로 내려받았습니다. GitHub에는 자동 반영되지 않습니다.'});document.getElementById('print-doc').addEventListener('click',()=>window.print());
+})();
+</script>
+</body></html>

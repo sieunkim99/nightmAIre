@@ -118,3 +118,7 @@ nightmAIre는 "악몽"이라는 사변적 꿈을 PD stimuli로 쓰는 **RtD 프�
 | 말도 안 돼! (비판→재생성) | 어떤 위험을 터무니없다고 여기는지 수집 (Questionable Concepts) |
 | 해석 쓰기 | social story 기법 |
 | 악몽 되돌리기 (원칙→판정→재생성) | 아이가 모르는 예방 지식 식별 → 무엇을 가르쳐야 할지 identify |
+# 생성 파이프라인 재설계 문서
+
+2026-11-17: 초등 5–6학년 단독 체험을 위한 생성 재설계를 별도로 정리했습니다. [인터랙티브 설명 문서](docs/pipeline/index.html), [설계 전문](docs/pipeline/design.md), [위험 분류·출처 대응](docs/pipeline/taxonomy.md), [미정 항목 체크리스트](docs/pipeline/decisions.md)를 참고하세요. HTML은 내려받아 브라우저로 열 수 있습니다. 아래 기존 Method 설명은 기준 구현 `5a03113`의 기록이며 새 설계의 구현 상태와 구분합니다.
+
