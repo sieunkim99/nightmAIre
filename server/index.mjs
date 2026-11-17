@@ -5,35 +5,34 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Anthropic from "@anthropic-ai/sdk";
 import { RISK_DECK, DIALS } from "./riskDeck.mjs";
-import { judgeSystemPrompt, judgeUserPrompt } from "./prompts.mjs";
-import { writeSystemPrompt, writeUserPrompt } from "./storyPrompts.mjs";
-import { storyToDream } from "./dreamShape.mjs";
+import { mountGenerator } from "./generator/routes.mjs";
+import { LIBRARY_VERSION, TAXONOMY, MECHANISMS, CLAIMS, SOURCES } from "./generator/library.mjs";
 import { drawScenes, imagesEnabled, IMAGE_MODEL } from "./images.mjs";
-import { demoDream, demoJudge } from "./demo.mjs";
-
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = path.join(here, "data");
-fs.mkdirSync(DATA_DIR, { recursive: true });
+fs.mkdirSync(DATA_DIR, {
+  recursive: true
+});
 const IMG_DIR = path.join(DATA_DIR, "images");
-
 const MODEL = process.env.NIGHTMAIRE_MODEL || "claude-opus-5-5";
 const EFFORT = process.env.NIGHTMAIRE_EFFORT || "medium";
 const FORCE_DEMO = process.env.DEMO_MODE === "1";
-
 const PROD = process.env.NODE_ENV === "production";
-
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+app.use(express.json({
+  limit: "1mb"
+}));
 
-// 공개 배포 보호: ACCESS_CODE가 설정돼 있으면 생성/판정/로그 API에 접속 코드를 요구한다.
+// 공개 배포 보호: ACCESS_CODE가 설정돼 있으면 생성/라이브러리 API에 접속 코드를 요구한다.
 // (공개 서버는 소유자의 API 키로 과금되므로, 코드 없이 열어두지 않는 것을 권장)
 const ACCESS_CODE = process.env.ACCESS_CODE || "";
 function requireCode(req, res, next) {
   if (!ACCESS_CODE) return next();
   if (req.get("x-access-code") === ACCESS_CODE) return next();
-  res.status(401).json({ error: "access code required" });
+  res.status(401).json({
+    error: "access code required"
+  });
 }
-
 let client = null;
 function getClient() {
   if (!client) client = new Anthropic(); // ANTHROPIC_API_KEY / ant 프로필 자동 인식
@@ -45,7 +44,6 @@ function hasCredentials() {
 function liveMode() {
   return !FORCE_DEMO && hasCredentials();
 }
-
 function extractJson(text) {
   // 모델이 코드펜스로 감싸거나 앞뒤에 말을 붙여도 JSON을 복원
   const fenced = text.match(/```(?:json)?\s*([\s\S]*?)```/);
@@ -55,132 +53,88 @@ function extractJson(text) {
   if (start === -1 || end === -1) throw new Error("no JSON in model output");
   return JSON.parse(candidate.slice(start, end + 1));
 }
-
-async function callModel(system, user) {
+async function callModel(system, user, {
+  signal
+} = {}) {
   const response = await getClient().messages.create({
     model: MODEL,
     max_tokens: 16000,
-    output_config: { effort: EFFORT },
-    system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: user }],
+    output_config: {
+      effort: EFFORT
+    },
+    system: [{
+      type: "text",
+      text: system,
+      cache_control: {
+        type: "ephemeral"
+      }
+    }],
+    messages: [{
+      role: "user",
+      content: user
+    }]
+  }, {
+    signal
   });
   if (response.stop_reason === "refusal") {
     throw new Error("model refused: " + (response.stop_details?.explanation || ""));
   }
-  const text = response.content
-    .filter((b) => b.type === "text")
-    .map((b) => b.text)
-    .join("\n");
+  const text = response.content.filter(b => b.type === "text").map(b => b.text).join("\n");
   return extractJson(text);
 }
 
-// 세션 로그: 연구 데이터 수집용 append-only JSONL
+// Optional aggregate metadata only. Generator routes never pass raw child material.
 function logEvent(event) {
-  const line = JSON.stringify({ ts: new Date().toISOString(), ...event }) + "\n";
+  const line = JSON.stringify({
+    ts: new Date().toISOString(),
+    ...event
+  }) + "\n";
   fs.appendFileSync(path.join(DATA_DIR, "events.jsonl"), line);
 }
-
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
     mode: liveMode() ? "live" : "demo",
+    pipelineVersion: 3,
     model: MODEL,
     imageModel: imagesEnabled() ? IMAGE_MODEL : null,
-    accessRequired: Boolean(ACCESS_CODE),
+    accessRequired: Boolean(ACCESS_CODE)
   });
 });
 
 // 장면 그림: 파일 이름이 추측 불가능한 무작위 id라 <img>로 바로 불러온다 (헤더를 붙일 수 없음)
-app.use("/api/img", express.static(IMG_DIR, { maxAge: "7d", fallthrough: false }));
-
+app.use("/api/img", express.static(IMG_DIR, {
+  maxAge: "7d",
+  fallthrough: false
+}));
 app.get("/api/deck", (_req, res) => {
-  res.json({ deck: RISK_DECK, dials: DIALS });
+  res.json({
+    deck: RISK_DECK,
+    dials: DIALS
+  });
+});
+app.get("/api/access", requireCode, (_req, res) => res.json({
+  ok: true
+}));
+app.get("/api/library", requireCode, (_req, res) => res.json({
+  version: LIBRARY_VERSION,
+  taxonomy: TAXONOMY,
+  mechanisms: MECHANISMS,
+  claims: CLAIMS,
+  sources: SOURCES
+}));
+mountGenerator(app, {
+  requireCode,
+  liveMode,
+  callModel,
+  imagesEnabled,
+  drawScenes,
+  imageDir: IMG_DIR,
+  record: process.env.NIGHTMAIRE_RECORD_METADATA === "1" ? logEvent : () => {}
 });
 
-app.post("/api/dream", requireCode, async (req, res) => {
-  const { material, dials, critiques = [], sessionId } = req.body || {};
-  if (!material || !dials) return res.status(400).json({ error: "material and dials required" });
-  logEvent({ type: "dream_request", sessionId, material, dials, critiques });
-  try {
-    let dream;
-    let mode = "demo";
-    if (liveMode()) {
-      try {
-        // v2 이야기 엔진 (eval/에서 고른 single 파이프라인: 기획까지 한 번의 호출로)
-        const story = await callModel(writeSystemPrompt({ withPlan: false }), writeUserPrompt({ material, dials, critiques }));
-        dream = storyToDream(story, material);
-        mode = "live";
-        if (imagesEnabled()) {
-          // 그림이 다 나온 뒤에 꿈을 보여준다. 실패한 장면은 캔버스로 남는다.
-          const t0 = Date.now();
-          try {
-            const files = await drawScenes({ story, material, dir: IMG_DIR });
-            files.forEach((f, i) => f && dream.cuts[i] && (dream.cuts[i].img = `/api/img/${f}`));
-            logEvent({ type: "images", sessionId, model: IMAGE_MODEL, files, ms: Date.now() - t0 });
-          } catch (err) {
-            console.error("[dream] scene images failed:", err.message);
-          }
-        }
-      } catch (err) {
-        console.error("[dream] live generation failed, falling back to demo:", err.message);
-        dream = demoDream({ material, dials });
-      }
-    } else {
-      dream = demoDream({ material, dials });
-    }
-    logEvent({ type: "dream_result", sessionId, mode, dream });
-    res.json({ dream, mode });
-  } catch (err) {
-    console.error("[dream] error:", err);
-    res.status(500).json({ error: String(err.message || err) });
-  }
-});
-
-app.post("/api/judge", requireCode, async (req, res) => {
-  const { dream, principles = [], sessionId } = req.body || {};
-  if (!dream || !principles.length)
-    return res.status(400).json({ error: "dream and principles required" });
-  logEvent({ type: "judge_request", sessionId, principles });
-  try {
-    let result;
-    let mode = "demo";
-    if (liveMode()) {
-      try {
-        result = await callModel(judgeSystemPrompt(), judgeUserPrompt({ dream, principles }));
-        mode = "live";
-      } catch (err) {
-        console.error("[judge] live judging failed, falling back to demo:", err.message);
-        result = demoJudge({ dream, principles });
-      }
-    } else {
-      result = demoJudge({ dream, principles });
-    }
-    logEvent({ type: "judge_result", sessionId, mode, result });
-    res.json({ result, mode });
-  } catch (err) {
-    console.error("[judge] error:", err);
-    res.status(500).json({ error: String(err.message || err) });
-  }
-});
-
-// 수집된 연구 데이터 내보내기 (교사/연구자 콘솔용)
-app.get("/api/events", requireCode, (_req, res) => {
-  const file = path.join(DATA_DIR, "events.jsonl");
-  if (!fs.existsSync(file)) return res.json({ events: [] });
-  const events = fs
-    .readFileSync(file, "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .map((l) => {
-      try {
-        return JSON.parse(l);
-      } catch {
-        return null;
-      }
-    })
-    .filter(Boolean);
-  res.json({ events });
-});
+// Research/design documentation is separate from the child's experience.
+app.use("/docs/pipeline", express.static(path.join(here, "..", "docs", "pipeline")));
 
 // 프로덕션(호스팅)에서는 빌드된 프론트도 이 서버가 함께 서빙한다 → 단일 서비스 배포
 if (PROD) {
@@ -192,10 +146,7 @@ if (PROD) {
 // 포트: 호스팅(프로덕션)에서는 플랫폼이 주는 PORT를 따른다.
 // 개발에서는 일반 PORT를 무시한다 — 프리뷰 런처가 PORT=5173(프론트 포트)을 주입해
 // Vite와 충돌한 적이 있음. 개발용 API 포트는 전용 변수(NIGHTMAIRE_API_PORT)로만 바꾼다.
-const PORT =
-  process.env.NIGHTMAIRE_API_PORT || (PROD && process.env.PORT) || 5799;
+const PORT = process.env.NIGHTMAIRE_API_PORT || PROD && process.env.PORT || 5799;
 app.listen(PORT, () => {
-  console.log(
-    `[nightmAIre] server on http://localhost:${PORT} (${liveMode() ? "LIVE" : "DEMO"} mode, model: ${MODEL}${imagesEnabled() ? `, images: ${IMAGE_MODEL}` : ""}${ACCESS_CODE ? ", access code ON" : ""})`,
-  );
+  console.log(`[nightmAIre] server on http://localhost:${PORT} (${liveMode() ? "LIVE" : "DEMO"} mode, model: ${MODEL}${imagesEnabled() ? `, images: ${IMAGE_MODEL}` : ""}${ACCESS_CODE ? ", access code ON" : ""})`);
 });

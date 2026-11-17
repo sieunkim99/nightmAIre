@@ -13,6 +13,7 @@ const BEAT_STYLE = {
   wake: { mood: "sink", palette: ["#070410", "#241038", "#e8c878"], camera: "pull", events: ["crackLight"] },
 };
 const BEATS = Object.keys(BEAT_STYLE);
+const V3_STYLES = { entry: "opening", discovery: "rule", contrast: "wish", crossing: "rule", overlap: "cost", ending: "wake" };
 const FRIENDS_BY_BEAT = { opening: "normal", rule: "normal", wish: "normal", cost: "turn", climax: "blur", wake: "none" };
 
 function settingOf(place, text, beat) {
@@ -27,8 +28,8 @@ function settingOf(place, text, beat) {
   return beat === "wake" ? "bedroom" : "void";
 }
 
-function shotOf(scene, i, people) {
-  const beat = BEAT_STYLE[scene.beat] ? scene.beat : BEATS[Math.min(i, BEATS.length - 1)];
+function shotOf(scene, i, people, version) {
+  const beat = version === 3 ? (V3_STYLES[scene.beat] || "rule") : BEAT_STYLE[scene.beat] ? scene.beat : BEATS[Math.min(i, BEATS.length - 1)];
   const style = BEAT_STYLE[beat];
   const text = `${scene.text || ""} ${scene.image || ""}`;
   const names = (people || []).filter(Boolean);
@@ -61,6 +62,7 @@ function shotOf(scene, i, people) {
 }
 
 export function isStory(x) {
+  if (x?.pipelineVersion === 3) return Boolean(Array.isArray(x.scenes) && x.scenes.length && x.blueprint && x.provenance);
   return Boolean(x && Array.isArray(x.scenes) && x.scenes.length >= 3 && Array.isArray(x.causes) && x.causes.length);
 }
 
@@ -69,7 +71,7 @@ export function storyToDream(story, material) {
   return {
     ...story,
     format: "story",
-    causeNodes: story.causes.map((c, i) => ({ ...c, id: c.id || `n${i + 1}` })),
-    cuts: story.scenes.map((s, i) => shotOf(s, i, material?.people)),
+    causeNodes: (story.causes || []).map((c, i) => ({ ...c, id: c.id || `n${i + 1}` })),
+    cuts: story.scenes.map((s, i) => shotOf(s, i, material?.people, story.pipelineVersion)),
   };
 }

@@ -323,3 +323,17 @@ textarea { resize: vertical; min-height: 64px; }
   background: radial-gradient(ellipse at 70% 0%, rgba(255, 224, 160, 0.55), rgba(255, 224, 160, 0) 65%); mix-blend-mode: screen; }
 .dawn.lit-half { opacity: 0.5; }
 .dawn.lit-good { opacity: 1; }
+.generator-app .hero h1 { font-size: clamp(28px, 5vw, 42px); }
+.generator-field { display: grid; gap: 8px; margin: 16px 0; }
+.generator-notice { color: var(--ink-dim); font-size: 14px; margin: 14px 0; }
+.generator-error { border: 1px solid var(--accent); border-radius: 12px; padding: 16px; margin: 16px 0; }
+.generator-worlds { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr)); gap: 14px; margin: 20px 0; }
+.generator-world { color: inherit; text-align: left; display: flex; flex-direction: column; gap: 12px; cursor: pointer; margin: 0; min-height: 170px; }
+.generator-world.selected { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 14%, var(--bg)); }
+.generator-choice-mark { font-size: 13px; color: var(--accent); margin-top: auto; }
+.generator-intensity { border: 0; padding: 0; margin: 18px 0 0; display: flex; flex-wrap: wrap; gap: 16px; }
+.generator-intensity label { display: flex; align-items: center; gap: 8px; }
+.generator-intensity input { width: auto; }
+.generator-app .nav-row { flex-wrap: wrap; gap: 12px; }
+.generator-app :is(button,input,textarea):focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .generator-app *, .generator-app *::before, .generator-app *::after { animation: none !important; transition: none !important; } }

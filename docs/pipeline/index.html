@@ -18,6 +18,7 @@
  <div class="badges" style="margin-top:20px"><span class="badge">초등 5–6학년 · 혼자 사용</span><span class="badge">이번 범위: 악몽 생성</span><span class="badge">장면 수 가변</span><span class="badge">결과 형식 미정</span></div>
  <nav class="links" aria-label="문서 목차"><a href="#changes">변경 전후</a><a href="#pipeline">전체 파이프라인</a><a href="#library">위험 라이브러리</a><a href="#example">생성 예시</a><a href="#concept">꿈 컨셉</a><a href="#evidence">근거</a><a href="#decisions">마지막 결정 목록</a></nav>
  <div class="callout"><strong>지금은 Supabase 이전보다 생성 구조를 먼저 바꾼다.</strong><br>무엇을 생성하고 무엇을 보존할지 정한 다음 저장소와 배포를 선택한다. 호스팅 이전·실서비스 배포는 이번 변경에 포함하지 않는다.</div>
+ <div class="callout"><strong>v3 코드 반영:</strong> 재료 확인 → 근거 연결 → 복수 미래 → 아이의 선택·새 가정 → 가변 장면 → 검토 → 읽기까지 연결했다. 아래 일곱 단계는 설계 구조이며 실제 호출·검사 범위는 <a href="implementation.md">구현 대응표</a>에서 구분한다. YAIR 14개는 분류 레지스트리, 생성 기제는 우선 3종이다. 실제 모델 품질·아동 사용성·이미지 출력 검증은 남아 있다.</div>
 </header>
 
 <section id="changes"><h2>01. 무엇이 실제로 달라지는가</h2>
@@ -107,7 +108,7 @@
 
 <section id="delivery"><h2>08. 구현 순서와 확인할 동작</h2>
 <ol><li><strong>문서 먼저:</strong> 변경 전후, 단계별 입력·출력, 분류 대응, 결정 목록을 sieun에 기록한다.</li><li><strong>생성 코드:</strong> 경험 → 근거 연결 → 여러 미래 → 공동 선택 → 세계·장면 → 집필을 실제 요청으로 연결한다. writer가 전체 덱에서 새 위험을 임의로 다시 고르지 않는다.</li><li><strong>단독 사용:</strong> 요약 수정·건너뛰기·나오기, 선택 위임, 명확한 끝을 제공한다. 되돌리기 단계로 강제 이동시키지 않는다.</li><li><strong>검사:</strong> 출처·사건 참조가 유효한지, 선택이 반영되는지, 장면 수가 달라져도 읽히는지, 실패가 데모로 숨겨지지 않는지 확인한다.</li><li><strong>그다음:</strong> 실제 생성 품질·아동 사용성을 검토하고 자료 보존·운영 방식과 배포를 정한다.</li></ol>
-<p>구현 확인과 연구적 검증은 다르다. 구조 검사를 통과해도 문헌 해석과 아동 적합성이 검증된 것은 아니다. 유해 현실 경험의 처리와 검토되지 않은 위험 경로는 운영 전에 별도로 확인한다.</p>
+<p>구현 확인과 연구적 검증은 다르다. 구조 검사를 통과해도 문헌 해석과 아동 적합성이 검증된 것은 아니다. 유해 현실 경험의 처리와 검토되지 않은 위험 경로는 운영 전에 별도로 확인한다. <a href="implementation.md">현재 구현·호출 수·검사·남은 작업 보기</a></p>
 </section>
 
 <section id="decisions"><h2>09. 마지막으로, 직접 체크할 결정 목록</h2>
